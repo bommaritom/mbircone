@@ -42,10 +42,10 @@ print('\t The goal of this script is to determine whether we can reduce\
 # Experiment Parameters
 # #################################################################################
 
-experiment_A = False                          # Toggles code corresponding to Experiment A, or regular
+experiment_A = False                         # Toggles code corresponding to Experiment A, or regular
                                              # qGGMRF cone beam reconstruction without an initial image.
 
-experiment_B = False                          # Toggles code corresponding to Experiment B, or qGGMRF cone
+experiment_B = False                         # Toggles code corresponding to Experiment B, or qGGMRF cone
                                              # beam reconstruction with an initial image generated at
                                              # half-pixel pitch.
 
@@ -54,11 +54,11 @@ experiment_C = True                          # Toggles code corresponding to Exp
                                              # half-pixel pitch from a sinogram filtered according to the
                                              # kernels given below.
 
-f_array = [2.0, 4.0, 6.0]                    # Sampling rate of 2D sinc function with Hamming window.
-p_array = [4, 8, 12]                         # Order of convolutional kernel. Support of kernel
+f_array = [2.0]                              # Sampling rate of 2D sinc function with Hamming window.
+p_array = [4]                                # Order of convolutional kernel. Support of kernel
                                              # is 2*(order_kernel)+1
                                              # For each pair (f,p) provided, one full
-#                                            # reconstruction is run.
+                                             # reconstruction is run.
 
 # #################################################################################
 # Set the parameters to generate the phantom, synthetic sinogram, and recon
@@ -108,7 +108,7 @@ os.makedirs(save_path, exist_ok=True)
 # Generate a 3D shepp logan phantom
 ######################################################################################
 
-print('Genrating 3D Shepp Logan phantom ...\n')
+print('Generating 3D Shepp Logan phantom ...\n')
 
 phantom = mbircone.phantom.gen_shepp_logan_3d(num_phantom_rows, num_phantom_cols, num_phantom_slices, scale=scale)
 phantom = SL_phantom_density_scale*phantom
