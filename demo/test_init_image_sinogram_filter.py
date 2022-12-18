@@ -42,10 +42,10 @@ print('\t The goal of this script is to determine whether we can reduce\
 # Experiment Parameters
 # #################################################################################
 
-experiment_A = False                         # Toggles code corresponding to Experiment A, or regular
+experiment_A = False                          # Toggles code corresponding to Experiment A, or regular
                                              # qGGMRF cone beam reconstruction without an initial image.
 
-experiment_B = False                         # Toggles code corresponding to Experiment B, or qGGMRF cone
+experiment_B = False                          # Toggles code corresponding to Experiment B, or qGGMRF cone
                                              # beam reconstruction with an initial image generated at
                                              # half-pixel pitch.
 
@@ -55,7 +55,7 @@ experiment_C = True                          # Toggles code corresponding to Exp
                                              # kernels given below.
 
 f_array = [2.0, 4.0, 6.0]                    # Sampling rate of 2D sinc function with Hamming window.
-p_array = [4, 8. 12]                         # Order of convolutional kernel. Support of kernel
+p_array = [4, 8, 12]                         # Order of convolutional kernel. Support of kernel
                                              # is 2*(order_kernel)+1
                                              # For each pair (f,p) provided, one full
 #                                            # reconstruction is run.
@@ -166,10 +166,10 @@ if experiment_B:
     print('Generating init_image_B with 3D qGGMRF reconstruction ...\n')
 
     init_image_B = mbircone.cone3D.recon(sino, angles, dist_source_detector, magnification,
-                                             delta_pixel_image=delta_pixel*2,
-                                             num_image_rows=num_image_rows//2, num_image_cols=num_image_cols//2,
-                                             num_image_slices=num_image_slices//2,
-                                             sharpness=sharpness, T=T, max_resolutions=0)
+                                         delta_pixel_image=delta_pixel*2,
+                                         num_image_rows=num_image_rows//2, num_image_cols=num_image_cols//2,
+                                         num_image_slices=num_image_slices//2,
+                                         sharpness=sharpness, T=T, max_resolutions=0)
 
     # double size of pixels to return to original array size
     init_image_B = np.repeat(init_image_B, 2, axis=0)
@@ -188,10 +188,10 @@ if experiment_C:
         print(f'Generating init_image_C_{index} with 3D qGGMRF reconstruction ...\n')
 
         init_image_C = mbircone.cone3D.recon(sino_C, angles, dist_source_detector, magnification,
-                                              delta_pixel_image=delta_pixel*2,
-                                              num_image_rows=num_image_rows//2, num_image_cols=num_image_cols//2,
-                                              num_image_slices=num_image_slices//2,
-                                              sharpness=sharpness, T=T, max_resolutions=0)
+                                             delta_pixel_image=delta_pixel*2,
+                                             num_image_rows=num_image_rows//2, num_image_cols=num_image_cols//2,
+                                             num_image_slices=num_image_slices//2,
+                                             sharpness=sharpness, T=T, max_resolutions=0)
 
         # Double size of pixels to return to original array size
         init_image_C = np.repeat(init_image_C, 2, axis=0)
@@ -215,10 +215,10 @@ if experiment_A:
     print('Generating recon_A with 3D qGGMRF reconstruction ...\n')
 
     recon_A = mbircone.cone3D.recon(sino, angles, dist_source_detector, magnification,
-                                          delta_pixel_image=delta_pixel,
-                                          num_image_rows=num_image_rows, num_image_cols=num_image_cols,
-                                          num_image_slices=num_image_slices,
-                                          sharpness=sharpness, T=T, max_resolutions=0)
+                                    delta_pixel_image=delta_pixel,
+                                    num_image_rows=num_image_rows, num_image_cols=num_image_cols,
+                                    num_image_slices=num_image_slices,
+                                    sharpness=sharpness, T=T, max_resolutions=0)
 
 if experiment_B:
 
@@ -227,11 +227,11 @@ if experiment_B:
     print('Generating recon_B with 3D qGGMRF reconstruction ...\n')
 
     recon_B = mbircone.cone3D.recon(sino, angles, dist_source_detector, magnification,
-                                                       init_image=init_image_B,
-                                                       delta_pixel_image=delta_pixel,
-                                                       num_image_rows=num_image_rows, num_image_cols=num_image_cols,
-                                                       num_image_slices=num_image_slices,
-                                                       sharpness=sharpness, T=T, max_resolutions=0)
+                                    init_image=init_image_B,
+                                    delta_pixel_image=delta_pixel,
+                                    num_image_rows=num_image_rows, num_image_cols=num_image_cols,
+                                    num_image_slices=num_image_slices,
+                                    sharpness=sharpness, T=T, max_resolutions=0)
 
 if experiment_C:
 
@@ -243,13 +243,13 @@ if experiment_C:
 
         init_image_C = init_image_C_dict[index]
 
-        print(f'Generating init_image_C_{index} with 3D qGGMRF reconstruction ...\n')
+        print(f'Generating recon_C_{index} with 3D qGGMRF reconstruction ...\n')
 
         recon_C = mbircone.cone3D.recon(sino, angles, dist_source_detector, magnification, init_image=init_image_C,
-                                      delta_pixel_image=delta_pixel,
-                                      num_image_rows=num_image_rows, num_image_cols=num_image_cols,
-                                      num_image_slices=num_image_slices,
-                                      sharpness=sharpness, T=T, max_resolutions=0)
+                                        delta_pixel_image=delta_pixel,
+                                        num_image_rows=num_image_rows, num_image_cols=num_image_cols,
+                                        num_image_slices=num_image_slices,
+                                        sharpness=sharpness, T=T, max_resolutions=0)
 
         recon_C_dict[index] = recon_C
 
@@ -299,11 +299,11 @@ if experiment_A:
 if experiment_B:
 
     # Display init_image_B
-    plot_image(init_image_B[display_slice_init_image], title=f'init_image_B from qGGMRF, axial slice {display_slice_init_image}',
+    plot_image(init_image_B[display_slice_init_image], title=f'init image B from qGGMRF, axial slice {display_slice_init_image}',
              filename=os.path.join(save_path, 'init_image_B_axial.png'), vmin=vmin, vmax=vmax)
-    plot_image(init_image_B[:,display_x_init_image,:], title=f'init_image_B from qGGMRF, coronal slice {display_x_init_image}',
+    plot_image(init_image_B[:,display_x_init_image,:], title=f'init image B from qGGMRF, coronal slice {display_x_init_image}',
              filename=os.path.join(save_path, 'init_image_B_coronal.png'), vmin=vmin, vmax=vmax)
-    plot_image(init_image_B[:,:,display_y_init_image], title=f'init_image_B from qGGMRF, sagittal slice {display_y_init_image}',
+    plot_image(init_image_B[:,:,display_y_init_image], title=f'init image B from qGGMRF, sagittal slice {display_y_init_image}',
              filename=os.path.join(save_path, 'init_image_B_sagittal.png'), vmin=vmin, vmax=vmax)
 
     # Display recon_B
@@ -331,13 +331,13 @@ if experiment_C:
         init_image_C = init_image_C_dict[index]
 
         plot_image(init_image_C[display_slice_init_image],
-                   title=f'init_image_C_{index} from qGGMRF, axial slice {display_slice_init_image}',
+                   title=f'init image C {index} from qGGMRF, filter f={f_array[index]}, p={p_array[index]}, axial slice {display_slice_init_image}',
                    filename=os.path.join(save_path, f'init_image_C_kernel_{index}_axial.png'), vmin=vmin, vmax=vmax)
         plot_image(init_image_C[:,display_x_init_image,:],
-                   title=f'init_image_C_{index} from qGGMRF, coronal slice {display_x_init_image}',
+                   title=f'init image C {index} from qGGMRF, filter f={f_array[index]}, p={p_array[index]}, coronal slice {display_x_init_image}',
                    filename=os.path.join(save_path, f'init_image_C_kernel_{index}_coronal.png'), vmin=vmin, vmax=vmax)
         plot_image(init_image_C[:,:,display_y_init_image],
-                   title=f'init_image_C_{index} from qGGMRF, sagittal slice {display_y_init_image}',
+                   title=f'init image C {index} from qGGMRF, filter f={f_array[index]}, p={p_array[index]}, sagittal slice {display_y_init_image}',
                    filename=os.path.join(save_path, f'init_image_C_kernel_{index}_sagittal.png'), vmin=vmin, vmax=vmax)
 
     # Display recon_C
@@ -346,13 +346,13 @@ if experiment_C:
         recon_C = recon_C_dict[index]
 
         plot_image(recon_C[display_slice_recon],
-                   title=f'qGGMRF recon C, f={f_array[index]}, p={p_array[index]}, axial slice {display_slice_recon}',
+                   title=f'recon C {index} from qGGMRF, filter f={f_array[index]}, p={p_array[index]}, axial slice {display_slice_recon}',
                    filename=os.path.join(save_path, f'recon_C_kernel_{index}_axial.png'), vmin=vmin, vmax=vmax)
         plot_image(recon_C[:, display_x_recon, :],
-                   title=f'qGGMRF recon C, f={f_array[index]}, p={p_array[index]}, coronal slice {display_x_recon}',
+                   title=f'recon C {index}, from qGGMRF, filter f={f_array[index]}, p={p_array[index]}, coronal slice {display_x_recon}',
                    filename=os.path.join(save_path, f'recon_C_kernel_{index}_coronal.png'), vmin=vmin, vmax=vmax)
         plot_image(recon_C[:, :, display_y_recon],
-                   title=f'qGGMRF recon C, f={f_array[index]}, p={p_array[index]}, sagittal slice {display_y_recon}',
+                   title=f'recon C {index}, from qGGMRF, filter f={f_array[index]}, p={p_array[index]}, sagittal slice {display_y_recon}',
                    filename=os.path.join(save_path, f'recon_C_kernel_{index}_sagittal.png'), vmin=vmin, vmax=vmax)
 
     # Display cross section of filter through one axis
