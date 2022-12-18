@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import mbircone
 from demo_utils import plot_image
-import scipy as sp
+from scipy import signal as sgn
 
 def get_kernel(sampling_rate, order):
     """
@@ -13,7 +13,6 @@ def get_kernel(sampling_rate, order):
     output = [np.sinc(x / sampling_rate)/sampling_rate for x in range(-order, order+1)]
     output *= np.hamming(2*order + 1)
     return np.outer(output, output)
-
 
 """
 The goal of this script is to determine whether we can reduce
@@ -111,7 +110,7 @@ if use_initial_image:
     if filter_sinogram:
         sino_filtered = np.copy(sino)
     for view_angle in range(np.shape(sino_filtered)[0]):
-        sino_filtered[view_angle] = sp.signal.convolve(sino_filtered[view_angle], kernel, mode='same')
+        sino_filtered[view_angle] = sgn.convolve(sino_filtered[view_angle], kernel, mode='same')
     else:
         sino_filtered = sino
 
