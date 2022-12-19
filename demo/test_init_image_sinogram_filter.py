@@ -60,6 +60,8 @@ p_array = [4]                                # Order of convolutional kernel. Su
                                              # For each pair (f,p) provided, one full
                                              # reconstruction is run.
 
+assert np.size(f_array) == np.size(p_array), 'Size of f_array and p_array must match.'
+
 # #################################################################################
 # Set the parameters to generate the phantom, synthetic sinogram, and recon
 # #################################################################################
