@@ -5,6 +5,27 @@ import mbircone
 from demo_utils import plot_image
 from scipy import signal as sgn
 
+
+def block_average(image, k, ell):
+    """
+    Return a block-averaged version of image
+    with k by ell kernel size
+    """
+    m, n = image.shape
+
+    # zero-padding to be zero modulo k and ell
+    # the array will become size (m+k-1)//k by (n+ell-1)//ell
+    image_pad = np.pad(image, ((0, (-m) % k), (0, (-n) % ell)), 'constant')
+
+    # turn into an array of k by ell blocks
+    image_reshape = image_pad.reshape((m + k - 1) // k, k, (n + ell - 1) // ell, ell).swapaxes(1, 2)
+
+    # get average of the 2x2 blocks
+    image_block_avg = np.mean(image_reshape, axis=2)
+    image_block_avg = np.mean(image_block_avg, axis=2)
+    return image_block_avg
+
+
 """
 The goal of this script is to test block average (say more)
 """
