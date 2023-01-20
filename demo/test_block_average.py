@@ -27,8 +27,21 @@ def block_average(image, k, ell):
     return image_block_avg
 
 
+def get_kernel(sampling_rate, order):
+    """
+    Return a sampled 2D sinc filter of size 2*order+1, corresponding to the
+    given sampling rate sampling_rate, with DC shift 1, windowed with hamming window
+    """
+    output = [np.sinc(x / sampling_rate)/sampling_rate for x in range(-order, order+1)]
+    output *= np.hamming(2*order + 1)
+    return np.outer(output, output)
+
+
 """
-The goal of this script is to test block average (say more)
+The goal of this script is to test a rudimentary block average function. Functionality includes
+ * Generate a dummy 13x13x13 phantom with three lit pixels.
+ * Perform pre-filtering and block-averaging.
+ * 
 """
 print('\t The goal of this script is to test block average (say more)\
 \n\t (say more) \n')
@@ -59,9 +72,9 @@ vmin = 0.10
 vmax = 0.12
 
 # Size of phantom
-num_slices_phantom = 5
-num_rows_phantom = 5
-num_cols_phantom = 5
+num_slices_phantom = 13
+num_rows_phantom = 13
+num_cols_phantom = 13
 delta_pixel_phantom = 1
 
 # local path to save phantom, sinogram, and reconstruction images
@@ -75,8 +88,8 @@ print('Genrating phantom ...')
 
 phantom = np.zeros((num_slices_phantom, num_rows_phantom, num_cols_phantom))
 phantom[num_slices_phantom//2, num_rows_phantom//2, num_cols_phantom//2] = 2
-phantom[num_slices_phantom//2+1, num_rows_phantom//2+1, num_cols_phantom//2] = 0
-phantom[num_slices_phantom//2+2, num_rows_phantom//2+2, num_cols_phantom//2] = 1
+phantom[num_slices_phantom//2+2, num_rows_phantom//2+3, num_cols_phantom//2] = 1
+phantom[num_slices_phantom//2, num_rows_phantom//2+2, num_cols_phantom//2] = 1
 
 ######################################################################################
 # Generate synthetic sinograms
@@ -89,10 +102,17 @@ sino = mbircone.cone3D.project(phantom, angles,
                                dist_source_detector, magnification,
                                delta_pixel_image=delta_pixel_phantom)
 
-sino_block_average = np.zeros((num_views, (num_det_rows+1)//2, (num_det_channels+1)//2))
+# prefilter to prepare for averaging + downsampling
+kernel = get_kernel(2, 4)
+sino_pre_filter = np.copy(sino)
+for view_angle in range(np.shape(sino_pre_filter)[0]):
+    sino_pre_filter[view_angle] = sgn.convolve(sino_pre_filter[view_angle], kernel, mode='same')
 
+# perform block-averaging
+sino_block_average = np.zeros((num_views, (num_det_rows+1)//2, (num_det_channels+1)//2))
 for view in range(num_views):
-    sino_block_average[view] = block_average(sino[view], 2, 2)
+    sino_block_average[view] = block_average(sino_pre_filter[view], 2, 2)
+
 
 print('Synthetic sinogram shape: (num_views, num_det_rows, num_det_channels) = ', sino.shape)
 
@@ -117,6 +137,13 @@ for view_idx in [0, num_views // 4, num_views // 2]:
     view_angle = int(angles[view_idx] * 180 / np.pi)
     plot_image(sino[view_idx, :, :], title=f'sinogram view angle {view_angle}',
                filename=os.path.join(save_path, f'sino-view-angle-{view_angle}.png'))
+
+for view_idx in [0, num_views // 4, num_views // 2]:
+    view_angle = int(angles[view_idx] * 180 / np.pi)
+    plot_image(sino_pre_filter[view_idx, :, :], title=f'sinogram low pass view angle {view_angle}',
+               filename=os.path.join(save_path, f'sino-low-pass-view-angle-{view_angle}.png'))
+
+
 #
 for view_idx in [0, num_views // 4, num_views // 2]:
     view_angle = int(angles[view_idx] * 180 / np.pi)
@@ -124,19 +151,19 @@ for view_idx in [0, num_views // 4, num_views // 2]:
                filename=os.path.join(save_path, f'sino-block-average-view-angle-{view_angle}.png'))
 
 
-# # Print phantom images
-# display_slice_phantom = num_slices_phantom // 2
-# display_x_phantom = num_rows_phantom // 2
-# display_y_phantom = num_cols_phantom // 2
-#
-#
-# # phantom images
-# plot_image(phantom[display_slice_phantom], title=f'phantom, axial slice {display_slice_phantom}',
-#            filename=os.path.join(save_path, 'phantom_axial.png'), vmin=vmin, vmax=vmax)
-# plot_image(phantom[:, display_x_phantom, :], title=f'phantom, coronal slice {display_x_phantom}',
-#            filename=os.path.join(save_path, 'phantom_coronal.png'), vmin=vmin, vmax=vmax)
-# plot_image(phantom[:, :, display_y_phantom], title=f'phantom, sagittal slice {display_y_phantom}',
-#            filename=os.path.join(save_path, 'phantom_sagittal.png'), vmin=vmin, vmax=vmax)
+# Print phantom images
+display_slice_phantom = num_slices_phantom // 2
+display_x_phantom = num_rows_phantom // 2
+display_y_phantom = num_cols_phantom // 2
+
+
+# phantom images
+plot_image(phantom[display_slice_phantom], title=f'phantom, axial slice {display_slice_phantom}',
+           filename=os.path.join(save_path, 'phantom_axial.png'))
+plot_image(phantom[:, display_x_phantom, :], title=f'phantom, coronal slice {display_x_phantom}',
+           filename=os.path.join(save_path, 'phantom_coronal.png'))
+plot_image(phantom[:, :, display_y_phantom], title=f'phantom, sagittal slice {display_y_phantom}',
+           filename=os.path.join(save_path, 'phantom_sagittal.png'))
 
 
 # Print recon images
@@ -148,11 +175,11 @@ display_y_recon = num_cols_recon // 2
 
 # recon images
 plot_image(recon[display_slice_recon], title=f'recon, axial slice {display_slice_recon}',
-           filename=os.path.join(save_path, 'recon_axial.png'), vmin=vmin, vmax=vmax)
+           filename=os.path.join(save_path, 'recon_axial.png'))
 plot_image(recon[:, display_x_recon, :], title=f'recon, coronal slice {display_x_recon}',
-           filename=os.path.join(save_path, 'recon_coronal.png'), vmin=vmin, vmax=vmax)
+           filename=os.path.join(save_path, 'recon_coronal.png'))
 plot_image(recon[:, :, display_y_recon], title=f'recon, sagittal slice {display_y_recon}',
-           filename=os.path.join(save_path, 'recon_sagittal.png'), vmin=vmin, vmax=vmax)
+           filename=os.path.join(save_path, 'recon_sagittal.png'))
 
 # Print recon low res images
 num_slices_recon_low_res, num_rows_recon_low_res, num_cols_recon_low_res = np.shape(recon_low_res)
@@ -163,11 +190,23 @@ display_y_recon_low_res = num_cols_recon_low_res // 2
 
 # recon low res images
 plot_image(recon_low_res[display_slice_recon_low_res], title=f'recon low res, axial slice {display_slice_recon_low_res}',
-           filename=os.path.join(save_path, 'recon_low_res_axial.png'), vmin=vmin, vmax=vmax)
+           filename=os.path.join(save_path, 'recon_low_res_axial.png'))
 plot_image(recon_low_res[:, display_x_recon_low_res, :], title=f'recon low res, coronal slice {display_x_recon_low_res}',
-           filename=os.path.join(save_path, 'recon_low_res_coronal.png'), vmin=vmin, vmax=vmax)
+           filename=os.path.join(save_path, 'recon_low_res_coronal.png'))
 plot_image(recon_low_res[:, :, display_y_recon_low_res], title=f'recon low res, sagittal slice {display_y_recon_low_res}',
-           filename=os.path.join(save_path, 'recon_low_res_sagittal.png'), vmin=vmin, vmax=vmax)
+           filename=os.path.join(save_path, 'recon_low_res_sagittal.png'))
+
+print("Final reconstruction pixel values:" + str(recon_low_res[:, :, display_y_recon_low_res].round(3)))
+
+
+expected = np.zeros((7,7))
+expected[3,3] = 0.5
+expected[3,4] = 0.25
+expected[4,4] = 0.125
+expected[4,5] = 0.125
+
+plot_image(expected, title=f'expected reconstruction, sagittal slice {display_slice_recon_low_res}',
+           filename=os.path.join(save_path, 'expected_sagittal.png'))
 
 print(f"Images saved to {save_path}.")
 input("Press Enter")
