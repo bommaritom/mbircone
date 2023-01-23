@@ -39,12 +39,18 @@ def get_kernel(sampling_rate, order):
 
 """
 The goal of this script is to test a rudimentary block average function. Functionality includes
- * Generate a dummy 13x13x13 phantom with three lit pixels.
- * Perform pre-filtering and block-averaging.
- * 
+ * Forward-projecting the block-averaged phantom to generate a synthetic sinogram;
+ * Generating a dummy 13x13x13 phantom with three lit pixels;
+ * Performing pre-filtering and block-averaging;
+ * Computing a 3D reconstruction from the sinogram using a qGGMRF prior model;
+ * Displaying the results. 
 """
-print('\t The goal of this script is to test block average (say more)\
-\n\t (say more) \n')
+print('\t The goal of this script is to test a rudimentary block average function. Functionality includes\
+\n\t * Forward-projecting the block-averaged phantom to generate a synthetic sinogram; \
+\n\t * Generating a dummy 13x13x13 phantom with three lit pixels;\
+\n\t * Performing pre-filtering and block-averaging;\
+\n\t * Computing a 3D reconstruction from the sinogram using a qGGMRF prior model;\
+\n\t * Displaying the results. \n')
 
 
 # ###########################################################################
@@ -198,6 +204,8 @@ plot_image(recon_low_res[:, :, display_y_recon_low_res], title=f'recon low res, 
 
 print("Final reconstruction pixel values:" + str(recon_low_res[:, :, display_y_recon_low_res].round(3)))
 
+
+# Print out "expected" reconstruction image; if the original phantom were block-averaged.
 
 expected = np.zeros((7,7))
 expected[3,3] = 0.5
