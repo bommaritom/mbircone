@@ -8,7 +8,7 @@ from demo_utils import plot_image, plot_gif
 This script is a demonstration of the laminography reconstruction algorithm. Demo functionality includes
  * Generating a synthetic phantom with a single lit pixel.
  * Depending on the value of test_number:
-   * A) Generating a synthetic sinogram with delta_det_channel=2.
+   * A) Generating a synthetic sinogram with delta_det_channel=2, delta_det_row=2.
    * B) Generating a synthetic sinogram with delta_pixel_image=2.
    * C) Generating a synthetic sinogram with image_slice_offset=1.
    * D) Generating a synthetic sinogram with det_channel_offset=1.
@@ -18,7 +18,7 @@ This script is a demonstration of the laminography reconstruction algorithm. Dem
 print('This script is a demonstration of the laminography reconstruction algorithm. Demo functionality includes \
 \n\t * Generating a synthetic phantom with a single lit pixel. \
 \n\t * Depending on the value of test_number: \
-\n\t\t A) Generating a synthetic sinogram with delta_det_channel=2. \
+\n\t\t A) Generating a synthetic sinogram with delta_det_channel=2, delta_det_row=2. \
 \n\t\t B) Generating a synthetic sinogram with delta_pixel_image=2. \
 \n\t\t C) Generating a synthetic sinogram with image_slice_offset=1. \
 \n\t\t D) Generating a synthetic sinogram with det_channel_offset=1. \
@@ -64,7 +64,7 @@ if test_code == 'A':
     # Generate a synthetic sinogram with delta_det_channel=2.
     sino = mbircone.laminography.project_lamino(phantom, angles, theta_radians,
                                                 num_det_rows, num_det_channels,
-                                                delta_det_channel=2)
+                                                delta_det_channel=2, delta_det_row=2)
 elif test_code == 'B':
     # Generate a synthetic sinogram with delta_pixel_image=2
     sino = mbircone.laminography.project_lamino(phantom, angles, theta_radians,

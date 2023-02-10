@@ -9,7 +9,7 @@ This script is a demonstration of the laminography reconstruction algorithm. Dem
  * Generating a synthetic phantom with a single lit pixel.
  * Generating a synthetic sinogram by running project_lamino.
  * Depending on the value of test_number:
-   * A) Performing a 3D qGGMRF reconstruction with delta_det_channel=2.
+   * A) Performing a 3D qGGMRF reconstruction with delta_det_channel=2, delta_det_row=2.
    * B) Performing a 3D qGGMRF reconstruction with delta_pixel_image=2.
    * C) Performing a 3D qGGMRF reconstruction with image_slice_offset=1.
    * D) Performing a 3D qGGMRF reconstruction with det_channel_offset=1.
@@ -85,7 +85,7 @@ if test_code == 'A':
     recon = mbircone.laminography.recon_lamino(sino, angles, theta_radians,
                                                num_image_rows=num_image_rows,
                                                num_image_cols=num_image_cols, num_image_slices=num_image_slices,
-                                               delta_det_channel=2,
+                                               delta_det_channel=2, delta_det_row=2,
                                                sharpness=sharpness, snr_db=snr_db)
 elif test_code == 'B':
     # Perform a 3D qGGMRF reconstruction with delta_pixel_image=2.
@@ -124,8 +124,7 @@ print('recon shape = ', np.shape(recon))
 for view_idx in [0, num_views//4, num_views//2]:
         view_angle = int(angles[view_idx]*180/np.pi)
         plot_image(sino[view_idx, :, :], title=f'sinogram view angle {view_angle} ',
-                   filename=os.path.join(save_path, f'sino-shepp-logan-3D-view_angle{view_angle}.png'),
-                   vmin=0.0, vmax=2.0)
+                   filename=os.path.join(save_path, f'sino-shepp-logan-3D-view_angle{view_angle}.png'))
 
 display_phantom = phantom
 display_recon = recon
