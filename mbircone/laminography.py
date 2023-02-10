@@ -5,10 +5,57 @@ import mbircone.cone3D as cone3D
 __lib_path = os.path.join(os.path.expanduser('~'), '.cache', 'mbircone')
 
 
+def auto_lamino_params(theta, num_det_rows, num_det_channels, delta_det_channel, delta_det_row, image_slice_offset):
+    """ Compute values for parameters used internally for a synthetic cone beam approximation of laminography.
+
+    Args:
+        theta (float): Angle that source-detector line makes with the object vertical axis.
+        num_det_rows (int): Number of rows in laminography sinogram data.
+        num_det_channels (int): Number of channels in laminography sinogram data.
+
+        delta_det_channel (float): Detector channel spacing in :math:`ALU`.
+        delta_det_row (float): Detector row spacing in :math:`ALU`.
+
+        image_slice_offset (float): Vertical offset of the image in units of :math:`ALU`.
+
+    Returns:
+        (float, tuple): Values for ``lamino_dist_source_detector``, ``lamino_magnification``,
+        ``lamino_delta_det_row`` ``lamino_det_row_offset``, ``lamino_rotation_offset``,
+        ``lamino_image_slice_offset`` for the inputted image measurements.
+    """
+
+    # Determine artificial source-detector distance to approximate parallel beams
+    # Beams spread by less than epsilon * max(delta_det_channel,delta_det_row) as they pass through the phantom
+    epsilon = 0.0015
+    lamino_dist_source_detector = (1 / epsilon) * max(delta_det_channel, delta_det_row) * \
+                                  (max(num_det_rows, num_det_channels) ** 2)
+
+    # Setting _magnification=1.0 with a large _dist_source_detector approximates parallel beams
+    lamino_magnification = 1.0
+
+    # Compute synthetic detector pixel size corresponding to affine projection of
+    # real parallel-beam laminography detector onto synthetic cone-beam detector
+    lamino_delta_det_row = delta_det_row / np.sin(theta)
+
+    # Move synthetic cone-beam detector downward so that the incident cone-beam angle corresponds
+    # to the real laminographic angle.
+    lamino_det_row_offset = lamino_dist_source_detector / np.tan(theta)
+
+    # Since there is no source-detector line in parallel-beam projection, define the
+    # synthetic source-detector line to intersect the axis of rotation; so _rotation_offset=0.0
+    lamino_rotation_offset = 0.0
+
+    # Move the image region to correspond with the movement of the synthetic cone-beam detector
+    lamino_image_slice_offset = image_slice_offset + lamino_det_row_offset
+
+    return lamino_dist_source_detector, lamino_magnification, lamino_delta_det_row, lamino_det_row_offset, \
+        lamino_rotation_offset, lamino_image_slice_offset
+
+
 def recon_lamino(sino, angles, theta,
                  weights=None, weight_type='unweighted', init_image=0.0, prox_image=None,
                  num_image_rows=None, num_image_cols=None, num_image_slices=None,
-                 delta_det_channel=None, delta_det_row=None, delta_pixel_image=None,
+                 delta_det_channel=1.0, delta_det_row=1.0, delta_pixel_image=None,
                  det_channel_offset=0.0, image_slice_offset=0.0,
                  sigma_y=None, snr_db=40.0, sigma_x=None, sigma_p=None, p=1.2, q=2.0, T=1.0, num_neighbors=6,
                  sharpness=0.0, positivity=True, max_resolutions=None, stop_threshold=0.02, max_iterations=100,
@@ -19,7 +66,6 @@ def recon_lamino(sino, angles, theta,
         sino (float, ndarray): 3D laminography sinogram data with shape (num_views, num_det_rows, num_det_channels).
         angles (float, ndarray): 1D array of view angles in radians.
         theta (float): Angle that source-detector line makes with the object vertical axis.
-            Equal to pi/2 - grazing angle. When theta=pi/2, this is a parallel beam reconstruction.
 
         weights (float, ndarray, optional): [Default=None] 3D weights array with same shape as ``sino``.
             If ``weights`` is not supplied, then ``cone3D.calc_weights`` is used to set weights using ``weight_type``.
@@ -41,10 +87,8 @@ def recon_lamino(sino, angles, theta,
         num_image_slices (int, optional): [Default=None] Number of slices in reconstructed image.
             If None, automatically set by ``cone3D.auto_image_size``.
 
-        delta_det_channel (float, optional): [Default=1.0] Detector channel spacing in :math:`ALU`. If None, set to
-            value of delta_det_row. If delta_det_row is None, set both to 1.0.
-        delta_det_row (float, optional): [Default=1.0] Detector row spacing in :math:`ALU`. If None, set to
-            value of delta_det_channel. If delta_det_channel is None, set both to 1.0.
+        delta_det_channel (float, optional): [Default=1.0] Detector channel spacing in :math:`ALU`.
+        delta_det_row (float, optional): [Default=1.0] Detector row spacing in :math:`ALU`.
         delta_pixel_image (float, optional): [Default=None] Image pixel spacing in :math:`ALU`.
             If None, automatically set to ``delta_det_channel/magnification``.
 
@@ -97,108 +141,31 @@ def recon_lamino(sino, angles, theta,
 
     (_, num_det_rows, num_det_channels) = sino.shape
 
-    # If one of them is None, set it to equal the other.
-    if delta_det_channel is None:
-        delta_det_channel = delta_det_row
-    if delta_det_row is None:
-        delta_det_row = delta_det_channel
-
-    # If both of them were None, set both to 1.0
-    if delta_det_channel is None:
-        delta_det_channel = 1.0
-        delta_det_row = delta_det_channel
-
-    # Copy parameters that are the same in both laminography and cone-beam coordinates
-
-    _sino = np.copy(sino)
-    _angles = np.copy(angles)
-
-    if weights is None:
-        _weights = None
-    else:
-        _weights = np.copy(weights)
-
-    if isinstance(init_image, float):
-        _init_image = init_image
-    else:
-        _init_image = np.copy(init_image)
-
-    if prox_image is None:
-        _prox_image = None
-    else:
-        _prox_image = np.copy(prox_image)
-
-    _weight_type = weight_type
-    _num_image_rows = num_image_rows
-    _num_image_cols = num_image_cols
-    _num_image_slices = num_image_slices
-    _delta_det_channel = delta_det_channel
-    _delta_pixel_image = delta_pixel_image
-    _det_channel_offset = det_channel_offset
-
-    _sigma_y = sigma_y
-    _snr_db = snr_db
-    _sigma_x = sigma_x
-    _sigma_p = sigma_p
-    _p = p
-    _q = q
-    _T = T
-
-    _num_neighbors = num_neighbors
-    _sharpness = sharpness
-    _positivity = positivity
-    _max_resolutions = max_resolutions
-    _stop_threshold = stop_threshold
-    _max_iterations = max_iterations
-    _NHICD = NHICD
-    _num_threads = num_threads
-    _verbose = verbose
-    _lib_path = lib_path
-
-    # Calculate parameters that differ when we switch to synthetic cone-beam coordinates
-
-    # Determine synthetic source-detector distance to approximate parallel beams
-    # Beams spread by less than epsilon * max(delta_det_channel,delta_det_row) as they pass through the phantom
-    epsilon = 0.0015
-    _dist_source_detector = (1/epsilon)*max(delta_det_channel, delta_det_row)*(max(num_det_rows, num_det_channels)**2)
-
-    # Setting _magnification=1.0 with a large _dist_source_detector approximates parallel beams
-    _magnification = 1.0
-
-    # Compute synthetic detector pixel size corresponding to affine projection of
-    # real parallel-beam laminography detector onto synthetic cone-beam detector
-    _delta_det_row = delta_det_row / np.sin(theta)
-
-    # Move synthetic cone-beam detector downward so that the incident cone-beam angle corresponds
-    # to the real laminographic angle.
-    _det_row_offset = _dist_source_detector / np.tan(theta)
-
-    # Since there is no source-detector line in parallel-beam projection, define the
-    # synthetic source-detector line to intersect the axis of rotation; so _rotation_offset=0.0
-    _rotation_offset = 0.0
-
-    # Move the image region to correspond with the movement of the synthetic cone-beam detector
-    _image_slice_offset = image_slice_offset + _det_row_offset
+    lamino_dist_source_detector, lamino_magnification, lamino_delta_det_row, lamino_det_row_offset, \
+        lamino_rotation_offset, lamino_image_slice_offset = auto_lamino_params(theta, num_det_rows, num_det_channels,
+                                                                               delta_det_channel, delta_det_row,
+                                                                               image_slice_offset)
 
     # Translate laminography geometry to cone-beam approximation of laminography
-    return cone3D.recon(_sino, _angles, dist_source_detector=_dist_source_detector, magnification=_magnification,
-                        weights=_weights, weight_type=_weight_type, init_image=_init_image, prox_image=_prox_image,
-                        num_image_rows=_num_image_rows, num_image_cols=_num_image_cols,
-                        num_image_slices=_num_image_slices,
-                        delta_det_channel=_delta_det_channel, delta_det_row=_delta_det_row,
-                        delta_pixel_image=_delta_pixel_image,
-                        det_channel_offset=_det_channel_offset, det_row_offset=_det_row_offset,
-                        rotation_offset=_rotation_offset, image_slice_offset=_image_slice_offset,
-                        sigma_y=_sigma_y, snr_db=_snr_db, sigma_x=_sigma_x, sigma_p=_sigma_p, p=_p, q=_q, T=_T,
-                        num_neighbors=_num_neighbors,
-                        sharpness=_sharpness, positivity=_positivity, max_resolutions=_max_resolutions,
-                        stop_threshold=_stop_threshold, max_iterations=_max_iterations,
-                        NHICD=_NHICD, num_threads=_num_threads, verbose=_verbose, lib_path=_lib_path)
+    return cone3D.recon(sino, angles, dist_source_detector=lamino_dist_source_detector,
+                        magnification=lamino_magnification,
+                        weights=weights, weight_type=weight_type, init_image=init_image, prox_image=prox_image,
+                        num_image_rows=num_image_rows, num_image_cols=num_image_cols,
+                        num_image_slices=num_image_slices,
+                        delta_det_channel=delta_det_channel, delta_det_row=lamino_delta_det_row,
+                        delta_pixel_image=delta_pixel_image,
+                        det_channel_offset=det_channel_offset, det_row_offset=lamino_det_row_offset,
+                        rotation_offset=lamino_rotation_offset, image_slice_offset=lamino_image_slice_offset,
+                        sigma_y=sigma_y, snr_db=snr_db, sigma_x=sigma_x, sigma_p=sigma_p, p=p, q=q, T=T,
+                        num_neighbors=num_neighbors,
+                        sharpness=sharpness, positivity=positivity, max_resolutions=max_resolutions,
+                        stop_threshold=stop_threshold, max_iterations=max_iterations,
+                        NHICD=NHICD, num_threads=num_threads, verbose=verbose, lib_path=lib_path)
 
 
 def project_lamino(image, angles, theta,
                    num_det_rows, num_det_channels,
-                   delta_det_channel=None, delta_det_row=None, delta_pixel_image=None,
+                   delta_det_channel=1.0, delta_det_row=1.0, delta_pixel_image=None,
                    det_channel_offset=0.0, image_slice_offset=0.0,
                    num_threads=None, verbose=1, lib_path=__lib_path):
     """ Compute 3D cone beam forward projection for the laminography case.
@@ -207,15 +174,12 @@ def project_lamino(image, angles, theta,
         image (float, ndarray): 3D image to be projected, with shape (num_img_slices, num_img_rows, num_img_cols).
         angles (float, ndarray): 1D array of view angles in radians.
         theta (float): Angle that source-detector line makes with the object vertical axis.
-            Equal to pi/2 - grazing angle. When theta=pi/2, this is a parallel beam projection.
 
         num_det_rows (int): Number of rows in laminography sinogram data.
         num_det_channels (int): Number of channels in laminography sinogram data.
 
-        delta_det_channel (float, optional): [Default=1.0] Detector channel spacing in :math:`ALU`. If None, set to
-            value of delta_det_row. If delta_det_row is None, set both to 1.0.
-        delta_det_row (float, optional): [Default=1.0] Detector row spacing in :math:`ALU`. If None, set to
-            value of delta_det_channel. If delta_det_channel is None, set both to 1.0.
+        delta_det_channel (float, optional): [Default=1.0] Detector channel spacing in :math:`ALU`.
+        delta_det_row (float, optional): [Default=1.0] Detector row spacing in :math:`ALU`.
         delta_pixel_image (float, optional): [Default=None] Image pixel spacing in :math:`ALU`.
             If None, automatically set to ``delta_det_channel/magnification``.
 
@@ -235,60 +199,19 @@ def project_lamino(image, angles, theta,
         (float, ndarray): 3D laminography sinogram with shape (num_views, num_det_rows, num_det_channels).
     """
 
-    # If one of them is None, set it to equal the other.
-    if delta_det_channel is None:
-        delta_det_channel = delta_det_row
-    if delta_det_row is None:
-        delta_det_row = delta_det_channel
+    lamino_dist_source_detector, lamino_magnification, lamino_delta_det_row, lamino_det_row_offset, \
+        lamino_rotation_offset, lamino_image_slice_offset = auto_lamino_params(theta, num_det_rows, num_det_channels,
+                                                                               delta_det_channel, delta_det_row,
+                                                                               image_slice_offset)
 
-    # If both of them were None, set both to 1.0
-    if delta_det_channel is None:
-        delta_det_channel = 1.0
-        delta_det_row = delta_det_channel
+    return cone3D.project(image=image, angles=angles,
+                          num_det_rows=num_det_rows, num_det_channels=num_det_channels,
+                          dist_source_detector=lamino_dist_source_detector, magnification=lamino_magnification,
+                          delta_det_channel=delta_det_channel, delta_det_row=lamino_delta_det_row,
+                          delta_pixel_image=delta_pixel_image,
+                          det_channel_offset=det_channel_offset, det_row_offset=lamino_det_row_offset,
+                          rotation_offset=lamino_rotation_offset,
+                          image_slice_offset=lamino_image_slice_offset,
+                          num_threads=num_threads, verbose=verbose, lib_path=lib_path)
 
-    # Copy parameters that are the same in both laminography and cone-beam coordinates
-    _image = np.copy(image)
-    _angles = np.copy(angles)
 
-    _num_det_rows = num_det_rows
-    _num_det_channels = num_det_channels
-    _delta_det_channel = delta_det_channel
-    _delta_pixel_image = delta_pixel_image
-    _det_channel_offset = det_channel_offset
-
-    _num_threads = num_threads
-    _verbose = verbose
-    _lib_path = lib_path
-
-    # Determine artificial source-detector distance to approximate parallel beams
-    # Beams spread by less than epsilon * max(delta_det_channel,delta_det_row) as they pass through the phantom
-    epsilon = 0.0015
-    _dist_source_detector = (1/epsilon)*max(delta_det_channel,delta_det_row)*(max(num_det_rows, num_det_channels)**2)
-
-    # Setting _magnification=1.0 with a large _dist_source_detector approximates parallel beams
-    _magnification = 1.0
-
-    # Compute synthetic detector pixel size corresponding to affine projection of
-    # real parallel-beam laminography detector onto synthetic cone-beam detector
-    _delta_det_row = delta_det_row/np.sin(theta)
-
-    # Move synthetic cone-beam detector downward so that the incident cone-beam angle corresponds
-    # to the real laminographic angle.
-    _det_row_offset = _dist_source_detector/np.tan(theta)
-
-    # Since there is no source-detector line in parallel-beam projection, define the
-    # synthetic source-detector line to intersect the axis of rotation; so _rotation_offset=0.0
-    _rotation_offset = 0.0
-
-    # Move the image region to correspond with the movement of the synthetic cone-beam detector
-    _image_slice_offset = image_slice_offset + _det_row_offset
-
-    return cone3D.project(image=_image, angles=_angles,
-                          num_det_rows=_num_det_rows, num_det_channels=_num_det_channels,
-                          dist_source_detector=_dist_source_detector, magnification=_magnification,
-                          delta_det_channel=_delta_det_channel, delta_det_row=_delta_det_row,
-                          delta_pixel_image=_delta_pixel_image,
-                          det_channel_offset=_det_channel_offset, det_row_offset=_det_row_offset,
-                          rotation_offset=_rotation_offset,
-                          image_slice_offset=_image_slice_offset,
-                          num_threads=_num_threads, verbose=_verbose, lib_path=_lib_path)

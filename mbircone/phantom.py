@@ -263,7 +263,6 @@ def gen_lamino_sample_3d(num_rows, num_cols, num_slices, pad_factor=0):
 
     return phantom
 
-
 def nrmse(image, reference_image):
     """
     Compute the normalized root mean square error between image and reference_image.
