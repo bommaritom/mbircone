@@ -185,7 +185,7 @@ phantom_roi = phantom[:, phantom_row_start:phantom_row_end, phantom_col_start:ph
 
 # Compute and display reconstruction error in cylindrical phantom region
 mask = create_circular_mask(num_phantom_rows, num_phantom_cols)
-mask = np.tile(mask, (num_image_slices, 1, 1))
+mask = np.tile(mask, (num_phantom_slices, 1, 1))
 masked_recon_roi = np.ma.masked_where(mask, recon_roi)
 masked_phantom_roi = np.ma.masked_where(mask, phantom_roi)
 
