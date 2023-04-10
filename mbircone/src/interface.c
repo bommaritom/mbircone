@@ -87,7 +87,8 @@ void denoise(float *x_noisy, float *x_init,
  * Return Variables: None.
  */
 void recon(float *x, float *y, float *wght, float *proxmap_input,
-    struct SinoParams sinoParams, struct ImageParams imgParams, struct ReconParams reconParams, 
+    struct SinoParams sinoParams, struct ImageParams imgParams, struct ReconParams reconParams,
+    struct IterationStatistics iterationStatistics,
     char *Amatrix_fname)
 {
     struct Sino sino;
@@ -139,7 +140,7 @@ void recon(float *x, float *y, float *wght, float *proxmap_input,
     /* 
     Reconstruct 
     */
-    MBIR3DCone(&img, &sino, &reconParams, &A);
+    MBIR3DCone(&img, &sino, &reconParams, &iterationStatistics, &A);
     freeSysMatrix(&A);
     
     /* Free 2D pointer array for 3D data */

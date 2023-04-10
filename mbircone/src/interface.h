@@ -9,7 +9,8 @@ void denoise(float *x_noisy, float *x_init,
     struct ImageParams imgParams, struct ReconParams reconParams);
 
 void recon(float *x, float *y, float *wght, float *proxmap_input,
-    struct SinoParams sinoParams, struct ImageParams imgParams, struct ReconParams reconParams, 
+    struct SinoParams sinoParams, struct ImageParams imgParams, struct ReconParams reconParams,
+    struct IterationStatistics iterationStatistics,
     char *Amatrix_fname);
 
 void forwardProject(float *y, float *x, 

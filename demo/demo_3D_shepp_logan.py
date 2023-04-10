@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import mbircone
+import matplotlib.pyplot as plt
 from demo_utils import plot_image, plot_gif
 
 """
@@ -83,7 +84,7 @@ print('Synthetic sinogram shape: (num_views, num_det_rows, num_det_channels) = '
 # Perform 3D MBIR reconstruction using qGGMRF prior
 ######################################################################################
 print('Performing 3D qGGMRF reconstruction ...\n')
-recon = mbircone.cone3D.recon(sino, angles, dist_source_detector, magnification,
+recon, iteration_statistics = mbircone.cone3D.recon(sino, angles, dist_source_detector, magnification,
                               delta_pixel_image=delta_pixel,
                               num_image_rows=num_image_rows, num_image_cols=num_image_cols,
                               num_image_slices=num_image_slices,
@@ -115,7 +116,7 @@ plot_image(phantom[:,display_x_phantom,:], title=f'phantom, coronal slice {displ
            filename=os.path.join(save_path, 'phantom_coronal.png'), vmin=vmin, vmax=vmax)
 plot_image(phantom[:,:,display_y_phantom], title=f'phantom, sagittal slice {display_y_phantom}',
            filename=os.path.join(save_path, 'phantom_sagittal.png'), vmin=vmin, vmax=vmax)
-           
+
 # display recon images
 plot_image(recon[display_slice_recon], title=f'qGGMRF recon, axial slice {display_slice_recon}',
            filename=os.path.join(save_path, 'recon_axial.png'), vmin=vmin, vmax=vmax)
@@ -123,7 +124,16 @@ plot_image(recon[:,display_x_recon,:], title=f'qGGMRF recon, coronal slice {disp
            filename=os.path.join(save_path, 'recon_coronal.png'), vmin=vmin, vmax=vmax)
 plot_image(recon[:,:,display_y_recon], title=f'qGGMRF recon, sagittal slice {display_y_recon}',
            filename=os.path.join(save_path, 'recon_sagittal.png'), vmin=vmin, vmax=vmax)
-           
-print(f"Images saved to {save_path}.") 
+
+plt.clf()
+RWFE = iteration_statistics['RWFE']
+num_iterations = iteration_statistics['final_iteration']+1
+plt.xlabel('Iteration')
+plt.ylabel('Log Relative Weighted Forward Error')
+plt.title('Log RWFE vs Iteration; Final Resolution')
+plt.plot(np.log(RWFE[:num_iterations]))
+plt.savefig(os.path.join(save_path, 'RWFE_iterations.png'))
+
+print(f"Images saved to {save_path}.")
 input("Press Enter")
 

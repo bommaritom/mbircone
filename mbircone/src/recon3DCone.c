@@ -5,7 +5,8 @@
 #include "recon3DCone.h"
 #include "allocate.h"
 
-void MBIR3DCone(struct Image *img, struct Sino *sino, struct ReconParams *reconParams, struct SysMatrix *A)
+void MBIR3DCone(struct Image *img, struct Sino *sino, struct ReconParams *reconParams,
+    struct IterationStatistics *IterationStatistics, struct SysMatrix *A)
 {
     int itNumber = 0, MaxIterations;
     float stopThresholdChange;
@@ -72,7 +73,7 @@ void MBIR3DCone(struct Image *img, struct Sino *sino, struct ReconParams *reconP
     reconAux.NHICD_neighborFilter[0][0] = reconAux.NHICD_neighborFilter[0][2] = reconAux.NHICD_neighborFilter[2][0] = reconAux.NHICD_neighborFilter[2][2] = 0.1036;
     reconAux.NHICD_neighborFilter[1][0] = reconAux.NHICD_neighborFilter[0][1] = reconAux.NHICD_neighborFilter[2][1] = reconAux.NHICD_neighborFilter[1][2] = 0.1464;
     reconAux.NHICD_neighborFilter[1][1] = 0.0;
-    
+
     reconAux.relativeWeightedForwardError = 0;
     reconAux.relativeUnweightedForwardError = 0;
     reconAux.NHICD_numUpdatedVoxels = (long int*) malloc(numZiplines*sizeof(long int));
@@ -119,7 +120,7 @@ void MBIR3DCone(struct Image *img, struct Sino *sino, struct ReconParams *reconP
     timer_reset(&timer_icd_loop);
     tic(&ticToc_all);
     ticToc_icdUpdate_total = 0;
-    for (itNumber = 0; (itNumber <= MaxIterations) && (stopFlag==0); ++itNumber) 
+    for (itNumber = 0; (itNumber <= MaxIterations) && (stopFlag==0); ++itNumber)
     {
 
         /**
@@ -173,7 +174,7 @@ void MBIR3DCone(struct Image *img, struct Sino *sino, struct ReconParams *reconP
                         {
                             speedAuxICD_computeSpeed(&speedAuxICD);
                         }
-                        
+
 
                         /**
                          *         Prepare icdInfo for whole zip line
@@ -249,7 +250,7 @@ void MBIR3DCone(struct Image *img, struct Sino *sino, struct ReconParams *reconP
          */
         weightedNormSquared_e = computeSinogramWeightedNormSquared(sino, sino->e);
         weightedNormSquared_y = computeSinogramWeightedNormSquared(sino, sino->vox);
-        if (weightedNormSquared_y>0.0) 
+        if (weightedNormSquared_y>0.0)
             reconAux.relativeWeightedForwardError = sqrt(weightedNormSquared_e / weightedNormSquared_y);
         else
             reconAux.relativeWeightedForwardError = sqrt(weightedNormSquared_e);
@@ -283,7 +284,7 @@ void MBIR3DCone(struct Image *img, struct Sino *sino, struct ReconParams *reconP
         if(reconParams->isComputeCost)
             cost = MAPCost3D(sino, img, reconParams);
         toc(&ticToc_computeCost);
-        
+
 
         tic(&ticToc_computeRelUpdate);
         relUpdate = computeRelUpdate(&reconAux, reconParams, img);
@@ -306,7 +307,13 @@ void MBIR3DCone(struct Image *img, struct Sino *sino, struct ReconParams *reconP
                 stopFlag = 1;
         }
 
-
+        IterationStatistics->cost[itNumber] = cost;
+        IterationStatistics->weightedNormSquared_e[itNumber] = weightedNormSquared_e;
+        IterationStatistics->weightedNormSquared_y[itNumber] = weightedNormSquared_y;
+        IterationStatistics->normSquared_e[itNumber] = normSquared_e;
+        IterationStatistics->normSquared_y[itNumber] = normSquared_y;
+        IterationStatistics->RWFE[itNumber] = reconAux.relativeWeightedForwardError;
+        *IterationStatistics->finalIteration = itNumber;
 
         if (reconParams->verbosity>1)
         {

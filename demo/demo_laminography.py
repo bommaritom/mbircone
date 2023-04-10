@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import mbircone
+import matplotlib.pyplot as plt
 from demo_utils import plot_image, nrmse
 
 """
@@ -87,10 +88,11 @@ print('Synthetic sinogram shape: (num_views, num_det_rows, num_det_channels) = '
 
 print('Performing 3D qGGMRF reconstruction ...')
 
-recon = mbircone.laminography.recon_lamino(sino, angles, theta_radians,
+recon, iteration_statistics = mbircone.laminography.recon_lamino(sino, angles, theta_radians,
                                            num_image_slices = num_image_slices,
                                            num_image_rows = num_image_rows,
                                            num_image_cols = num_image_cols,
+                                           max_iterations=1000,
                                            sharpness=sharpness, snr_db=snr_db)
 
 print('recon shape = ', np.shape(recon))
@@ -184,6 +186,16 @@ plot_image(error[:, display_x_error,:], title=f'error, coronal slice {display_x_
 plot_image(error[:, :, display_y_error], title=f'error, sagittal slice {display_y_error}, '
                                                        f'Θ='+str(theta_degrees)+' degrees',
            filename=os.path.join(save_path, 'error_sagittal.png'), vmin=vmin, vmax=vmax)
+
+plt.clf()
+RWFE = iteration_statistics['RWFE']
+num_iterations = iteration_statistics['final_iteration']+1
+plt.xlabel('Iteration')
+plt.ylabel('Log Relative Weighted Forward Error')
+plt.title('Log RWFE vs Iteration; Final Resolution')
+plt.plot(np.log(RWFE[:num_iterations]))
+plt.savefig(os.path.join(save_path, 'RWFE_iterations.png'))
+
 
 print(f"Images saved to {save_path}.")
 input("Press Enter")

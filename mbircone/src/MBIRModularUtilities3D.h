@@ -365,11 +365,13 @@ struct SpeedAuxICD
 
 struct IterationStatistics
 {
-    float cost;
-    float relUpdate;
-    float weightScaler_value;
-    float voxelsPerSecond;
-    float ticToc_iteration;
+    float *cost;
+    float *weightedNormSquared_e;
+    float *weightedNormSquared_y;
+    float *normSquared_e;
+    float *normSquared_y;
+    float *RWFE;
+    int *finalIteration;
 };
 
 

@@ -111,31 +111,42 @@ cdef extern from "./src/MBIRModularUtilities3D.h":
         int verbosity;
         int isComputeCost;
 
+    struct IterationStatistics:
+
+        float *cost;
+        float *weightedNormSquared_e;
+        float *weightedNormSquared_y;
+        float *normSquared_e;
+        float *normSquared_y;
+        float *RWFE;
+        int *finalIteration;
+
 
 # Import a c function to compute A matrix.
 cdef extern from "./src/interface.h":
-    void AmatrixComputeToFile(float *angles, SinoParams c_sinoparams, ImageParams c_imgparams, 
+    void AmatrixComputeToFile(float *angles, SinoParams c_sinoparams, ImageParams c_imgparams,
         char *Amatrix_fname, char verbose);
-    
+
     void denoise(float *x_noisy, float *x_init,
     ImageParams c_imgparams, ReconParams c_reconparams);
 
     void recon(float *x, float *sino, float *wght, float *proxmap_input,
     SinoParams c_sinoparams, ImageParams c_imgparams, ReconParams c_reconparams,
+    IterationStatistics c_iterationstatistics,
     char *Amatrix_fname);
 
-    void forwardProject(float *y, float *x, 
-    SinoParams sinoParams, ImageParams imgparams, 
+    void forwardProject(float *y, float *x,
+    SinoParams sinoParams, ImageParams imgparams,
     char *Amatrix_fname)
 
 
 cdef convert_py2c_SinoParams3D(SinoParams* c_sinoparams, sinoparams):
-    
+
     c_sinoparams.N_dv = sinoparams['N_dv']
-    c_sinoparams.N_dw = sinoparams['N_dw'] 
+    c_sinoparams.N_dw = sinoparams['N_dw']
     c_sinoparams.Delta_dv = sinoparams['Delta_dv']
     c_sinoparams.Delta_dw = sinoparams['Delta_dw']
-    c_sinoparams.N_beta = sinoparams['N_beta']   
+    c_sinoparams.N_beta = sinoparams['N_beta']
     c_sinoparams.u_s = sinoparams['u_s']
     c_sinoparams.u_r = sinoparams['u_r']
     c_sinoparams.v_r = sinoparams['v_r']
@@ -173,7 +184,7 @@ cdef map_py2c_reconparams(ReconParams* c_reconparams,
                           const char* cy_weightScaler_domain,
                           const char* cy_NHICD_Mode):
 
-        c_reconparams.prox_mode = reconparams['prox_mode']   # Prior mode: (True: proximal map mode, False: QGGMRF recon/denoise mode) 
+        c_reconparams.prox_mode = reconparams['prox_mode']   # Prior mode: (True: proximal map mode, False: QGGMRF recon/denoise mode)
         # QGGMRF
         c_reconparams.q = reconparams['q']                   # q: QGGMRF parameter (q>1, typical choice q=2)
         c_reconparams.p = reconparams['p']                   # p: QGGMRF parameter (1<=p<q)
@@ -239,13 +250,13 @@ def string_to_char_array(input_str):
         0-terminated array of unsigned byte with ascii representation of input_str
     """
     # Get the input length to prepare output space
-    len_str = len(input_str)  
-    
+    len_str = len(input_str)
+
     # Create output array - note the len_str+1 to give 0-terminated array
-    output_char_array = np.zeros(len_str + 1, dtype=np.ubyte)  
-    
+    output_char_array = np.zeros(len_str + 1, dtype=np.ubyte)
+
     # Fill in the output array with the input string
-    output_char_array[:len_str] = bytearray(input_str.encode('ascii'))  
+    output_char_array[:len_str] = bytearray(input_str.encode('ascii'))
 
     return output_char_array
 
@@ -256,7 +267,7 @@ def AmatrixComputeToFile_cy(angles, sinoparams, imgparams, Amatrix_fname, verbos
     cdef SinoParams c_sinoparams
     cdef ImageParams c_imgparams
 
-    # Get pointer to 1D char array of Amatrix 
+    # Get pointer to 1D char array of Amatrix
     cdef cnp.ndarray[char, ndim=1, mode="c"] c_Amatrix_fname
     # Get pointer to 1D array of angles
     cdef cnp.ndarray[float, ndim=1, mode="c"] c_angles = angles.astype(np.single)
@@ -274,7 +285,7 @@ def denoise_cy(x_noisy, x_init,
     # sino, wght shape : views x slices x channels
     # recon shape: N_x N_y N_z (source-detector-line, channels, slices)
 
-    
+
     # image shape: N_x N_y N_z (source-detector-line, channels, slices)
     x_noisy = np.swapaxes(x_noisy, 0, 2)
     if not x_noisy.flags["C_CONTIGUOUS"]:
@@ -282,7 +293,7 @@ def denoise_cy(x_noisy, x_init,
     else:
         x_noisy = x_noisy.astype(np.single, copy=False)
     cdef cnp.ndarray[float, ndim=3, mode="c"] cy_x_noisy = x_noisy
-    
+
     # image shape: N_x N_y N_z (source-detector-line, channels, slices)
     if np.isscalar(x_init):
         x_init = np.zeros((imgparams['N_x'], imgparams['N_y'], imgparams['N_z'])) + x_init
@@ -322,7 +333,7 @@ def denoise_cy(x_noisy, x_init,
 
 
 def recon_cy(sino, angles, wght, x_init, proxmap_input,
-             sinoparams, imgparams, reconparams, max_resolutions, 
+             sinoparams, imgparams, reconparams, max_resolutions,
              num_threads, lib_path):
     # sino, wght shape : views x slices x channels
     # recon shape: N_x N_y N_z (source-detector-line, channels, slices)
@@ -333,7 +344,7 @@ def recon_cy(sino, angles, wght, x_init, proxmap_input,
     # go to lower resolution if possible
     if go_to_lower_resolution:
         if not is_img_size_even:
-            print(f"Current recon size (slices, rows, cols)=({imgparams['N_z']}, {imgparams['N_x']}, {imgparams['N_y']}).") 
+            print(f"Current recon size (slices, rows, cols)=({imgparams['N_z']}, {imgparams['N_x']}, {imgparams['N_y']}).")
             warnings.warn("\n*** Stopped going to lower resolution space because reconstruction size is not even in all dimensions! ***\n")
         else:
             # go to lower resolution
@@ -365,22 +376,22 @@ def recon_cy(sino, angles, wght, x_init, proxmap_input,
                 lr_prox_image = zoom(proxmap_input, 0.5)
             else:
                 lr_prox_image = proxmap_input
-            
+
             if reconparams['verbosity'] >= 1:
                 lr_num_slices, lr_num_rows, lr_num_cols = imgparams_lr['N_z'], imgparams_lr['N_x'], imgparams_lr['N_y']
                 print(f'Performing multi-resolution recon for reconstruction size (slices, rows, cols)=({lr_num_slices}, {lr_num_rows},{lr_num_cols}).')
-            
-            lr_recon = recon_cy(sino, angles, wght, lr_init_image, lr_prox_image,
-                                sinoparams, imgparams_lr, reconparams_lr, new_max_resolutions, 
+
+            lr_recon, _ = recon_cy(sino, angles, wght, lr_init_image, lr_prox_image,
+                                sinoparams, imgparams_lr, reconparams_lr, new_max_resolutions,
                                 num_threads, lib_path)
-            
+
             # Interpolate resolution of reconstruction
             x_init = zoom(lr_recon, 2.0)
             del lr_recon
             del lr_init_image
             del lr_prox_image
             # END go to lower resolution
-    
+
     hash_val = _utils.hash_params(angles, sinoparams, imgparams)
     py_Amatrix_fname = _utils._gen_sysmatrix_fname(lib_path=lib_path, sysmatrix_name=hash_val[:__namelen_sysmatrix])
 
@@ -401,21 +412,39 @@ def recon_cy(sino, angles, wght, x_init, proxmap_input,
     else:
         x_init = x_init.astype(np.single, copy=False)
     cdef cnp.ndarray[float, ndim=3, mode="c"] cy_x = x_init
-    
+
     cdef cnp.ndarray[float, ndim=3, mode="c"] cy_proxmap_input = np.empty((imgparams['N_x'], imgparams['N_y'], imgparams['N_z']), dtype=ctypes.c_float)
     if proxmap_input is not None:
         proxmap_input = np.swapaxes(proxmap_input, 0, 2)
         proxmap_input = np.ascontiguousarray(proxmap_input, dtype=np.single)
         cy_proxmap_input = proxmap_input
-    
+
     sino = np.swapaxes(sino,1,2)
     sino = np.ascontiguousarray(sino, dtype=np.single)
     cdef cnp.ndarray[float, ndim=3, mode="c"] cy_sino = sino
-   
-    wght = np.swapaxes(wght,1,2) 
+
+    wght = np.swapaxes(wght,1,2)
     wght = np.ascontiguousarray(wght, dtype=np.single)
     cdef cnp.ndarray[float, ndim=3, mode="c"] cy_wght = wght
-    
+
+    cdef cnp.ndarray[float, ndim=1, mode="c"] cost = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
+    cdef cnp.ndarray[float, ndim=1, mode="c"] weightedNormSquared_e = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
+    cdef cnp.ndarray[float, ndim=1, mode="c"] weightedNormSquared_y = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
+    cdef cnp.ndarray[float, ndim=1, mode="c"] normSquared_e = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
+    cdef cnp.ndarray[float, ndim=1, mode="c"] normSquared_y = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
+    cdef cnp.ndarray[float, ndim=1, mode="c"] RWFE = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
+    cdef int finalIteration = 0
+
+    cdef IterationStatistics c_iterationstatistics
+
+    c_iterationstatistics.cost = &cost[0]
+    c_iterationstatistics.weightedNormSquared_e = &weightedNormSquared_e[0]
+    c_iterationstatistics.weightedNormSquared_y = &weightedNormSquared_y[0]
+    c_iterationstatistics.normSquared_e = &normSquared_e[0]
+    c_iterationstatistics.normSquared_y = &normSquared_y[0]
+    c_iterationstatistics.RWFE = &RWFE[0]
+    c_iterationstatistics.finalIteration = &finalIteration
+
     cdef cnp.ndarray[char, ndim=1, mode="c"] c_Amatrix_fname = string_to_char_array(py_Amatrix_fname)
     cdef cnp.ndarray[char, ndim=1, mode="c"] cy_relativeChangeMode = string_to_char_array(reconparams["relativeChangeMode"])
     cdef cnp.ndarray[char, ndim=1, mode="c"] cy_weightScaler_estimateMode = string_to_char_array(reconparams["weightScaler_estimateMode"])
@@ -443,11 +472,22 @@ def recon_cy(sino, angles, wght, x_init, proxmap_input,
           c_sinoparams,
           c_imgparams,
           c_reconparams,
+          c_iterationstatistics,
           &c_Amatrix_fname[0])
     # print("Cython done")
     # Convert shape from Cython interface specifications to Python interface specifications
-    return np.swapaxes(cy_x, 0, 2)
 
+    py_iteration_statistics = {
+        'cost' : cost,
+        'weightedNormSquared_e' : weightedNormSquared_e,
+        'weightedNormSquared_y' : weightedNormSquared_y,
+        'normSquared_e' : normSquared_e,
+        'normSquared_y' : normSquared_y,
+        'RWFE' : RWFE,
+        'final_iteration' : finalIteration
+    }
+
+    return np.swapaxes(cy_x, 0, 2), py_iteration_statistics
 
 def project(image, settings):
     """Forward projection function used by mbircone.project().
