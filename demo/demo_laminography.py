@@ -189,12 +189,15 @@ plot_image(error[:, :, display_y_error], title=f'error, sagittal slice {display_
 
 plt.clf()
 RWFE = iteration_statistics['RWFE']
-num_iterations = iteration_statistics['final_iteration']+1
+num_iterations = iteration_statistics['final_iteration']
 plt.xlabel('Iteration')
 plt.ylabel('Log Relative Weighted Forward Error')
-plt.title('Log RWFE vs Iteration; Final Resolution')
-plt.plot(np.log(RWFE[:num_iterations]))
+plt.title('Log RWFE vs Iteration; Final Resolution qGGMRF')
+plt.plot(np.log(RWFE[:num_iterations+1]))
 plt.savefig(os.path.join(save_path, 'RWFE_iterations.png'))
+
+print(f'RWFE after 100 iterations: {RWFE[100]}')
+print(f'RWFE after {num_iterations} iterations: {RWFE[num_iterations]}')
 
 
 print(f"Images saved to {save_path}.")
