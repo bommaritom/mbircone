@@ -23,24 +23,6 @@ print('This script is a demonstration of a single multires reconstruction.\
 \n\t * Displaying the results.\n')
 
 
-def get_kernel(sampling_rate, order):
-    """
-    Return a sampled 2D sinc filter of size 2*order+1, corresponding to the
-    given sampling rate sampling_rate, with DC shift 1, windowed with hamming window
-    """
-    output = [np.sinc(x / sampling_rate)/sampling_rate for x in range(-order, order+1)]
-    output *= np.hamming(2*order + 1)
-    return np.outer(output, output)
-
-
-def filter_sino(sino, filter):
-
-    filtered_sino = np.copy(sino)
-    for view_angle in range(np.shape(filtered_sino)[0]):
-        filtered_sino[view_angle] = sgn.convolve(filtered_sino[view_angle], filter, mode='same')
-
-    return filtered_sino
-
 # ###########################################################################
 # Set the parameters to generate the phantom, synthetic sinogram, and do the recon
 # ###########################################################################
@@ -51,7 +33,7 @@ def filter_sino(sino, filter):
 num_det_rows = 128                           # Number of detector rows
 num_det_channels = 128                       # Number of detector channels
 magnification = 1.0                          # Ratio of (source to detector)/(source to center of rotation)
-dist_source_detector = 5000000000000000000000000.0*num_det_channels  # Distance from source to detector in ALU
+dist_source_detector = 3.0*num_det_channels  # Distance from source to detector in ALU
 num_views = 64                               # Number of projection views
 
 # Generate uniformly spaced view angles in the range [0, 2*pi).
@@ -114,12 +96,6 @@ low_res_recon = mbircone.multires.half_res_recon(sino, angles, dist_source_detec
                                                            num_image_slices=num_image_slices,
                                                            sharpness=sharpness, T=T)
 
-low_res_recon_filtered = mbircone.multires.half_res_recon(filtered_sino, angles, dist_source_detector, magnification,
-                                                          delta_pixel_image=delta_pixel,
-                                                          num_image_rows=num_image_rows, num_image_cols=num_image_cols,
-                                                          num_image_slices=num_image_slices,
-                                                          sharpness=sharpness, T=T)
-
 print('recon shape = ', np.shape(low_res_recon))
 
 
@@ -155,13 +131,6 @@ plot_image(low_res_recon[:,display_x_recon,:], title=f'qGGMRF low res recon, cor
            filename=os.path.join(save_path, 'low_res_recon_coronal.png'), vmin=vmin, vmax=vmax)
 plot_image(low_res_recon[:,:,display_y_recon], title=f'qGGMRF low res recon, sagittal slice {display_y_recon}',
            filename=os.path.join(save_path, 'low_res_recon_sagittal.png'), vmin=vmin, vmax=vmax)
-
-plot_image(low_res_recon_filtered[display_slice_recon], title=f'qGGMRF low res recon with sinogram filtering, axial slice {display_slice_recon}',
-           filename=os.path.join(save_path, 'low_res_recon_filtered_axial.png'), vmin=vmin, vmax=vmax)
-plot_image(low_res_recon_filtered[:,display_x_recon,:], title=f'qGGMRF low res recon with sinogram filtering, coronal slice {display_x_recon}',
-           filename=os.path.join(save_path, 'low_res_recon_filtered_coronal.png'), vmin=vmin, vmax=vmax)
-plot_image(low_res_recon_filtered[:,:,display_y_recon], title=f'qGGMRF low res recon with sinogram filtering, sagittal slice {display_y_recon}',
-           filename=os.path.join(save_path, 'low_res_recon_filtered_sagittal.png'), vmin=vmin, vmax=vmax)
 
 print(f"Images saved to {save_path}.") 
 input("Press Enter")
