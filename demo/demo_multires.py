@@ -2,6 +2,8 @@ import os
 import numpy as np
 import mbircone
 from demo_utils import plot_image, plot_gif
+from scipy import signal as sgn
+
 
 """
 This script is a demonstration of a single multires reconstruction.
@@ -20,6 +22,24 @@ print('This script is a demonstration of a single multires reconstruction.\
 \n\t * Upsampling the reconstructed image;\
 \n\t * Displaying the results.\n')
 
+
+def get_kernel(sampling_rate, order):
+    """
+    Return a sampled 2D sinc filter of size 2*order+1, corresponding to the
+    given sampling rate sampling_rate, with DC shift 1, windowed with hamming window
+    """
+    output = [np.sinc(x / sampling_rate)/sampling_rate for x in range(-order, order+1)]
+    output *= np.hamming(2*order + 1)
+    return np.outer(output, output)
+
+
+def filter_sino(sino, filter):
+
+    filtered_sino = np.copy(sino)
+    for view_angle in range(np.shape(filtered_sino)[0]):
+        filtered_sino[view_angle] = sgn.convolve(filtered_sino[view_angle], filter, mode='same')
+
+    return filtered_sino
 
 # ###########################################################################
 # Set the parameters to generate the phantom, synthetic sinogram, and do the recon
@@ -81,6 +101,9 @@ sino = mbircone.cone3D.project(phantom, angles,
                                dist_source_detector, magnification, delta_pixel_image=delta_pixel)
 print('Synthetic sinogram shape: (num_views, num_det_rows, num_det_channels) = ', sino.shape)
 
+kernel = get_kernel(2, 4)
+filtered_sino = filter_sino(sino, kernel)
+
 ######################################################################################
 # Perform 3D MBIR reconstruction using qGGMRF prior, at half-resolution
 ######################################################################################
@@ -90,6 +113,12 @@ low_res_recon = mbircone.multires.half_res_recon(sino, angles, dist_source_detec
                                                            num_image_rows=num_image_rows, num_image_cols=num_image_cols,
                                                            num_image_slices=num_image_slices,
                                                            sharpness=sharpness, T=T)
+
+low_res_recon_filtered = mbircone.multires.half_res_recon(filtered_sino, angles, dist_source_detector, magnification,
+                                                          delta_pixel_image=delta_pixel,
+                                                          num_image_rows=num_image_rows, num_image_cols=num_image_cols,
+                                                          num_image_slices=num_image_slices,
+                                                          sharpness=sharpness, T=T)
 
 print('recon shape = ', np.shape(low_res_recon))
 
@@ -101,9 +130,9 @@ print('recon shape = ', np.shape(low_res_recon))
 display_slice_phantom = num_phantom_slices // 2
 display_x_phantom = num_phantom_rows // 2
 display_y_phantom = num_phantom_cols // 2
-display_slice_recon = num_image_slices // 4
-display_x_recon = num_image_rows // 4
-display_y_recon = num_image_cols // 4
+display_slice_recon = num_image_slices // 2
+display_x_recon = num_image_rows // 2
+display_y_recon = num_image_cols // 2
 
 # sinogram images
 for view_idx in [0, num_views//4, num_views//2]:
@@ -126,6 +155,13 @@ plot_image(low_res_recon[:,display_x_recon,:], title=f'qGGMRF low res recon, cor
            filename=os.path.join(save_path, 'low_res_recon_coronal.png'), vmin=vmin, vmax=vmax)
 plot_image(low_res_recon[:,:,display_y_recon], title=f'qGGMRF low res recon, sagittal slice {display_y_recon}',
            filename=os.path.join(save_path, 'low_res_recon_sagittal.png'), vmin=vmin, vmax=vmax)
+
+plot_image(low_res_recon_filtered[display_slice_recon], title=f'qGGMRF low res recon with sinogram filtering, axial slice {display_slice_recon}',
+           filename=os.path.join(save_path, 'low_res_recon_filtered_axial.png'), vmin=vmin, vmax=vmax)
+plot_image(low_res_recon_filtered[:,display_x_recon,:], title=f'qGGMRF low res recon with sinogram filtering, coronal slice {display_x_recon}',
+           filename=os.path.join(save_path, 'low_res_recon_filtered_coronal.png'), vmin=vmin, vmax=vmax)
+plot_image(low_res_recon_filtered[:,:,display_y_recon], title=f'qGGMRF low res recon with sinogram filtering, sagittal slice {display_y_recon}',
+           filename=os.path.join(save_path, 'low_res_recon_filtered_sagittal.png'), vmin=vmin, vmax=vmax)
 
 print(f"Images saved to {save_path}.") 
 input("Press Enter")
