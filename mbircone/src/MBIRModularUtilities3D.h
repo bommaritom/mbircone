@@ -366,11 +366,9 @@ struct SpeedAuxICD
 struct IterationStatistics
 {
     float *cost;
-    float *weightedNormSquared_e;
-    float *weightedNormSquared_y;
-    float *normSquared_e;
-    float *normSquared_y;
+    float *relUpdate;
     float *RWFE;
+    float *RUFE;
     int *finalIteration;
 };
 

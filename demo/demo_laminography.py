@@ -187,18 +187,29 @@ plot_image(error[:, :, display_y_error], title=f'error, sagittal slice {display_
                                                        f'Θ='+str(theta_degrees)+' degrees',
            filename=os.path.join(save_path, 'error_sagittal.png'), vmin=vmin, vmax=vmax)
 
+num_iterations = iteration_statistics['final_iteration']
+
 plt.clf()
 RWFE = iteration_statistics['RWFE']
-num_iterations = iteration_statistics['final_iteration']
 plt.xlabel('Iteration')
 plt.ylabel('Log Relative Weighted Forward Error')
-plt.title('Log RWFE vs Iteration; Final Resolution qGGMRF')
-plt.plot(np.log(RWFE[:num_iterations+1]))
+plt.title('Log RWFE vs Iteration; Final Resolution')
+plt.plot(np.log10(RWFE[:num_iterations]))
 plt.savefig(os.path.join(save_path, 'RWFE_iterations.png'))
+
+plt.clf()
+relUpdate = iteration_statistics['relUpdate']
+plt.xlabel('Iteration')
+plt.ylabel('Log Relative Update')
+plt.title('Log Relative Update vs Iteration; Final Resolution')
+plt.plot(np.log10(relUpdate[:num_iterations]))
+plt.savefig(os.path.join(save_path, 'relUpdate_iterations.png'))
 
 print(f'RWFE after 100 iterations: {RWFE[100]}')
 print(f'RWFE after {num_iterations} iterations: {RWFE[num_iterations]}')
 
+print(f'relUpdate after 100 iterations: {relUpdate[100]}')
+print(f'relUpdate after {num_iterations} iterations: {relUpdate[num_iterations]}')
 
 print(f"Images saved to {save_path}.")
 input("Press Enter")

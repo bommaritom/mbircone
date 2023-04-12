@@ -114,11 +114,9 @@ cdef extern from "./src/MBIRModularUtilities3D.h":
     struct IterationStatistics:
 
         float *cost;
-        float *weightedNormSquared_e;
-        float *weightedNormSquared_y;
-        float *normSquared_e;
-        float *normSquared_y;
+        float *relUpdate;
         float *RWFE;
+        float *RUFE;
         int *finalIteration;
 
 
@@ -428,21 +426,17 @@ def recon_cy(sino, angles, wght, x_init, proxmap_input,
     cdef cnp.ndarray[float, ndim=3, mode="c"] cy_wght = wght
 
     cdef cnp.ndarray[float, ndim=1, mode="c"] cost = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
-    cdef cnp.ndarray[float, ndim=1, mode="c"] weightedNormSquared_e = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
-    cdef cnp.ndarray[float, ndim=1, mode="c"] weightedNormSquared_y = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
-    cdef cnp.ndarray[float, ndim=1, mode="c"] normSquared_e = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
-    cdef cnp.ndarray[float, ndim=1, mode="c"] normSquared_y = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
+    cdef cnp.ndarray[float, ndim=1, mode="c"] relUpdate = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
     cdef cnp.ndarray[float, ndim=1, mode="c"] RWFE = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
+    cdef cnp.ndarray[float, ndim=1, mode="c"] RUFE = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
     cdef int finalIteration = 0
 
     cdef IterationStatistics c_iterationstatistics
 
     c_iterationstatistics.cost = &cost[0]
-    c_iterationstatistics.weightedNormSquared_e = &weightedNormSquared_e[0]
-    c_iterationstatistics.weightedNormSquared_y = &weightedNormSquared_y[0]
-    c_iterationstatistics.normSquared_e = &normSquared_e[0]
-    c_iterationstatistics.normSquared_y = &normSquared_y[0]
+    c_iterationstatistics.relUpdate = &relUpdate[0]
     c_iterationstatistics.RWFE = &RWFE[0]
+    c_iterationstatistics.RUFE = &RUFE[0]
     c_iterationstatistics.finalIteration = &finalIteration
 
     cdef cnp.ndarray[char, ndim=1, mode="c"] c_Amatrix_fname = string_to_char_array(py_Amatrix_fname)
@@ -479,11 +473,9 @@ def recon_cy(sino, angles, wght, x_init, proxmap_input,
 
     py_iteration_statistics = {
         'cost' : cost,
-        'weightedNormSquared_e' : weightedNormSquared_e,
-        'weightedNormSquared_y' : weightedNormSquared_y,
-        'normSquared_e' : normSquared_e,
-        'normSquared_y' : normSquared_y,
+        'relUpdate' : relUpdate,
         'RWFE' : RWFE,
+        'RUFE' : RUFE,
         'final_iteration' : finalIteration
     }
 

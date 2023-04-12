@@ -308,11 +308,9 @@ void MBIR3DCone(struct Image *img, struct Sino *sino, struct ReconParams *reconP
         }
 
         IterationStatistics->cost[itNumber] = cost;
-        IterationStatistics->weightedNormSquared_e[itNumber] = weightedNormSquared_e;
-        IterationStatistics->weightedNormSquared_y[itNumber] = weightedNormSquared_y;
-        IterationStatistics->normSquared_e[itNumber] = normSquared_e;
-        IterationStatistics->normSquared_y[itNumber] = normSquared_y;
+        IterationStatistics->relUpdate[itNumber] = relUpdate;
         IterationStatistics->RWFE[itNumber] = reconAux.relativeWeightedForwardError;
+        IterationStatistics->RUFE[itNumber] = reconAux.relativeUnweightedForwardError;
         *IterationStatistics->finalIteration = itNumber;
 
         if (reconParams->verbosity>1)

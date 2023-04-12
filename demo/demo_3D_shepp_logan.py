@@ -125,14 +125,24 @@ plot_image(recon[:,display_x_recon,:], title=f'qGGMRF recon, coronal slice {disp
 plot_image(recon[:,:,display_y_recon], title=f'qGGMRF recon, sagittal slice {display_y_recon}',
            filename=os.path.join(save_path, 'recon_sagittal.png'), vmin=vmin, vmax=vmax)
 
+num_iterations = iteration_statistics['final_iteration']+1
+
 plt.clf()
 RWFE = iteration_statistics['RWFE']
-num_iterations = iteration_statistics['final_iteration']+1
 plt.xlabel('Iteration')
 plt.ylabel('Log Relative Weighted Forward Error')
 plt.title('Log RWFE vs Iteration; Final Resolution')
 plt.plot(np.log(RWFE[:num_iterations]))
 plt.savefig(os.path.join(save_path, 'RWFE_iterations.png'))
+
+plt.clf()
+relUpdate = iteration_statistics['relUpdate']
+num_iterations = iteration_statistics['final_iteration']+1
+plt.xlabel('Iteration')
+plt.ylabel('Log Relative Update')
+plt.title('Log Relative Update vs Iteration; Final Resolution')
+plt.plot(np.log(relUpdate[:num_iterations]))
+plt.savefig(os.path.join(save_path, 'relUpdate_iterations.png'))
 
 print(f"Images saved to {save_path}.")
 input("Press Enter")
