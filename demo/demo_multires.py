@@ -61,7 +61,7 @@ vmin = SL_phantom_density_scale*1.0
 vmax = SL_phantom_density_scale*1.2
 
 # local path to save phantom, sinogram, and reconstruction images
-save_path = f'output/3D_shepp_logan/'
+save_path = f'output/demo_multires/'
 os.makedirs(save_path, exist_ok=True)
 
 print('Genrating 3D Shepp Logan phantom ...\n')
