@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import mbircone
+from mbircone import multires
 from demo_utils import plot_image, plot_gif
 from scipy import signal as sgn
 
