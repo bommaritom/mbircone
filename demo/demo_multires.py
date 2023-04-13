@@ -83,9 +83,6 @@ sino = mbircone.cone3D.project(phantom, angles,
                                dist_source_detector, magnification, delta_pixel_image=delta_pixel)
 print('Synthetic sinogram shape: (num_views, num_det_rows, num_det_channels) = ', sino.shape)
 
-kernel = get_kernel(2, 4)
-filtered_sino = filter_sino(sino, kernel)
-
 ######################################################################################
 # Perform 3D MBIR reconstruction using qGGMRF prior, at half-resolution
 ######################################################################################
