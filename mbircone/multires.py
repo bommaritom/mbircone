@@ -179,6 +179,7 @@ def half_res_recon(sino, angles, dist_source_detector, magnification,
         :math:`ALU^{-1}`.
     """
 
+    # Downsample by a factor of 2
     sino_downsampled = half_res_sino(sino)
 
     num_image_rows_downsampled = int(np.ceil(num_image_rows/2))
@@ -205,4 +206,7 @@ def half_res_recon(sino, angles, dist_source_detector, magnification,
                      max_iterations=max_iterations,
                      NHICD=NHICD, num_threads=num_threads, verbose=verbose, lib_path=lib_path)
 
-    return x.repeat(2,0).repeat(2,1).repeat(2,2)
+    # upsample by a factor of 2
+    x = x.repeat(2,0).repeat(2,1).repeat(2,2)
+
+    return x
