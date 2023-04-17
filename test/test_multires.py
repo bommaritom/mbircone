@@ -2,7 +2,7 @@ import os
 import numpy as np
 import mbircone
 import matplotlib.pyplot as plt
-from experiments_utils import block_average_sino, block_average_3D, plot_image
+from test_utils import block_average_sino, block_average_3D, plot_image
 from scipy import signal as sgn
 
 
