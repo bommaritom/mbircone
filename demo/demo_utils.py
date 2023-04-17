@@ -71,7 +71,7 @@ def plot_gif(x, save_dir, name, vmin=None, vmax=None):
     imageio.mimsave(save_dir + "/%s.gif" % name, images, fps=5)
 
 
-def plot_image(img, title=None, filename=None, vmin=None, vmax=None):
+def plot_image(img, title=None, filename=None, vmin=None, vmax=None, cmap='gray'):
     """
     Function to display and save a 2D array as an image.
 
@@ -87,7 +87,7 @@ def plot_image(img, title=None, filename=None, vmin=None, vmax=None):
     fig = plt.figure()
     imgplot = plt.imshow(img, vmin=vmin, vmax=vmax, interpolation='none')
     plt.title(label=title)
-    imgplot.set_cmap('gray')
+    imgplot.set_cmap(cmap)
     plt.colorbar()
     if filename != None:
         try:

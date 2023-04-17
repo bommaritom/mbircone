@@ -4,6 +4,35 @@ import mbircone
 import matplotlib.pyplot as plt
 from demo_utils import plot_image, nrmse
 
+
+def create_circular_mask(h, w, center=None, radius=None):
+    """
+    Creates a circular mask for an image of size h x w, with a given center and radius.
+    Adapted from code by Alexander Reynolds via StackExchange
+
+    Args:
+        h (int): Height of image in pixels
+        w (int): Width of image in pixels
+        center (float, 2-tuple): Coordinates of center of circular mask, in pixels.
+        radius (float): Radius of circular mask, in pixels.
+    Returns:
+        h x w image with a circular mask centered at 'center' and with radius 'radius'
+        mask = 0 if pixel is within radius, 1 if pixel is outside radius
+
+    """
+    if center is None: # use the middle of the image
+        center = ((w-1)/2, (h-1)/2)
+    if radius is None: # use the smallest distance between the center and image walls
+        radius = min(center[0], center[1], w-center[0], h-center[1])+(1/2)
+
+    # Calculate distance from each pixel to the center of the circle
+    Y, X = np.ogrid[:h, :w]
+    dist_from_center = np.sqrt((X - center[0])**2 + (Y-center[1])**2)
+
+    # Create mask based on cutoff for distance
+    return dist_from_center > radius
+
+
 """
 This script is a demonstration of the laminography reconstruction algorithm. Demo functionality includes
  * Generating a 3D laminography sample phantom;
@@ -92,7 +121,7 @@ recon, iteration_statistics = mbircone.laminography.recon_lamino(sino, angles, t
                                            num_image_slices = num_image_slices,
                                            num_image_rows = num_image_rows,
                                            num_image_cols = num_image_cols,
-                                           max_iterations=1000,
+                                           max_iterations=30,
                                            sharpness=sharpness, snr_db=snr_db)
 
 print('recon shape = ', np.shape(recon))
@@ -137,19 +166,35 @@ plot_image(recon[:, :, display_y_recon], title=f'qGGMRF recon, sagittal slice {d
                                                        f'Θ='+str(theta_degrees)+' degrees',
            filename=os.path.join(save_path, 'recon_sagittal.png'), vmin=vmin, vmax=vmax)
 
+# num_iterations = iteration_statistics['final_iteration']
+
+# plt.clf()
+# RWFE = iteration_statistics['RWFE']
+# plt.xlabel('Iteration')
+# plt.ylabel('Log Relative Weighted Forward Error')
+# plt.title('Log RWFE vs Iteration; Final Resolution')
+# plt.plot(np.log10(RWFE[:num_iterations]))
+# plt.savefig(os.path.join(save_path, 'RWFE_iterations.png'))
+#
+# plt.clf()
+# relUpdate = iteration_statistics['relUpdate']
+# plt.xlabel('Iteration')
+# plt.ylabel('Log Relative Update')
+# plt.title('Log Relative Update vs Iteration; Final Resolution')
+# plt.plot(np.log10(relUpdate[:num_iterations]))
+# plt.savefig(os.path.join(save_path, 'relUpdate_iterations.png'))
+#
+# print(f'RWFE after 100 iterations: {RWFE[100]}')
+# print(f'RWFE after {num_iterations} iterations: {RWFE[num_iterations]}')
+#
+# print(f'relUpdate after 100 iterations: {relUpdate[100]}')
+# print(f'relUpdate after {num_iterations} iterations: {relUpdate[num_iterations]}')
+
+
+
 #####################################################################################
 # Generate NRMSE and error images
 #####################################################################################
-
-# Display all slices of the phantom within a window of num_phantom_rows x num_phantom_cols
-# Display the corresponding region from recon
-
-
-# Determine where the relevant phantom region begins and ends
-phantom_row_start = int(num_phantom_rows * (tile_rows-1)/2)
-phantom_row_end = phantom_row_start + num_phantom_rows
-phantom_col_start = int(num_phantom_cols * (tile_cols-1)/2)
-phantom_col_end = phantom_col_start + num_phantom_cols
 
 # Determine where the relevant recon region begins and ends
 recon_row_start = int((num_image_rows-num_phantom_rows)/2)
@@ -158,19 +203,33 @@ recon_col_start = int((num_image_cols-num_phantom_cols)/2)
 recon_col_end = recon_col_start + num_phantom_cols
 recon_slice_start = int((num_image_slices-num_phantom_slices)/2)
 recon_slice_end = recon_slice_start + num_phantom_slices
-
-phantom_roi = phantom[:, phantom_row_start:phantom_row_end, phantom_col_start:phantom_col_end]
 recon_roi = recon[recon_slice_start:recon_slice_end, recon_row_start:recon_row_end,
                   recon_col_start:recon_col_end]
 
-# Compute and display reconstruction error
+# Determine where the relevant phantom region begins and ends
+phantom_row_start = int(num_phantom_rows * (tile_rows-1)/2)
+phantom_row_end = phantom_row_start + num_phantom_rows
+phantom_col_start = int(num_phantom_cols * (tile_cols-1)/2)
+phantom_col_end = phantom_col_start + num_phantom_cols
+phantom_roi = phantom[:, phantom_row_start:phantom_row_end, phantom_col_start:phantom_col_end]
 
-nrmse = nrmse(recon_roi, phantom_roi)
+print(f'Phantom row start: {phantom_row_start}')
+print(f'Phantom row end: {phantom_row_end}')
+print(f'Phantom col start: {phantom_col_start}')
+print(f'Phantom col end: {phantom_col_end}')
+
+# Compute and display reconstruction error in cylindrical phantom region
+mask = create_circular_mask(num_phantom_rows, num_phantom_cols)
+mask = np.tile(mask, (num_phantom_slices, 1, 1))
+masked_recon_roi = np.ma.masked_where(mask, recon_roi)
+masked_phantom_roi = np.ma.masked_where(mask, phantom_roi)
+
+nrmse = nrmse(masked_recon_roi, masked_phantom_roi)
 print(f'qGGMRF normalized rms reconstruction error within laminography phantom window of diameter 64: '
       f'{nrmse:.3g}')
 
 # Generate image representing error
-error = np.abs(recon_roi - phantom_roi)
+error = np.abs(masked_recon_roi - masked_phantom_roi)
 
 display_slice_error = error.shape[0] // 2
 display_x_error = error.shape[1] // 2
@@ -179,37 +238,14 @@ display_y_error = error.shape[2] // 2
 # error images
 plot_image(error[display_slice_error], title=f'error, axial slice {display_slice_error}, '
                                                      f'Θ='+str(theta_degrees)+' degrees',
-           filename=os.path.join(save_path, 'error_axial.png'), vmin=vmin, vmax=vmax)
+           filename=os.path.join(save_path, 'error_axial.png'), vmin=0.0, vmax=0.05, cmap='viridis')
 plot_image(error[:, display_x_error,:], title=f'error, coronal slice {display_x_error}, '
                                                       f'Θ='+str(theta_degrees)+' degrees',
-           filename=os.path.join(save_path, 'error_coronal.png'), vmin=vmin, vmax=vmax)
+           filename=os.path.join(save_path, 'error_coronal.png'), vmin=0.0, vmax=0.05, cmap='viridis')
 plot_image(error[:, :, display_y_error], title=f'error, sagittal slice {display_y_error}, '
                                                        f'Θ='+str(theta_degrees)+' degrees',
-           filename=os.path.join(save_path, 'error_sagittal.png'), vmin=vmin, vmax=vmax)
+           filename=os.path.join(save_path, 'error_sagittal.png'), vmin=0.0, vmax=0.05, cmap='viridis')
 
-num_iterations = iteration_statistics['final_iteration']
-
-plt.clf()
-RWFE = iteration_statistics['RWFE']
-plt.xlabel('Iteration')
-plt.ylabel('Log Relative Weighted Forward Error')
-plt.title('Log RWFE vs Iteration; Final Resolution')
-plt.plot(np.log10(RWFE[:num_iterations]))
-plt.savefig(os.path.join(save_path, 'RWFE_iterations.png'))
-
-plt.clf()
-relUpdate = iteration_statistics['relUpdate']
-plt.xlabel('Iteration')
-plt.ylabel('Log Relative Update')
-plt.title('Log Relative Update vs Iteration; Final Resolution')
-plt.plot(np.log10(relUpdate[:num_iterations]))
-plt.savefig(os.path.join(save_path, 'relUpdate_iterations.png'))
-
-print(f'RWFE after 100 iterations: {RWFE[100]}')
-print(f'RWFE after {num_iterations} iterations: {RWFE[num_iterations]}')
-
-print(f'relUpdate after 100 iterations: {relUpdate[100]}')
-print(f'relUpdate after {num_iterations} iterations: {relUpdate[num_iterations]}')
 
 print(f"Images saved to {save_path}.")
 input("Press Enter")
