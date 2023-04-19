@@ -131,6 +131,12 @@ recon_B = mbircone.cone3D.recon(sino_B, angles,
 
 
 ######################################################################################
+# Sinogram error image
+######################################################################################
+sino_diff = np.abs(sino_A_block_average - sino_B)
+
+
+######################################################################################
 # Display results
 ######################################################################################
 
@@ -189,6 +195,13 @@ plot_image(recon_B[:,32,:], title=f'recon_B, coronal slice {32}',
            filename=os.path.join(save_path, 'recon_B_coronal.png'), vmin=vmin, vmax=vmax)
 plot_image(recon_B[:,:,32], title=f'recon_B, sagittal slice {32}',
            filename=os.path.join(save_path, 'recon_B_sagittal.png'), vmin=vmin, vmax=vmax)
+
+# sino_diff
+for view_idx in [0, num_views//4, num_views//2]:
+    view_angle = int(angles[view_idx]*180/np.pi)
+    plot_image(sino_diff[view_idx, :, :], title=f'sino_diff view angle {view_angle} ',
+               filename=os.path.join(save_path, f'sino-diff-shepp-logan-3D-view_angle{view_angle}.png'))
+
 
 print(f"Images saved to {save_path}.") 
 input("Press Enter")
