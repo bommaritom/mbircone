@@ -81,7 +81,7 @@ phantom_A = SL_phantom_density_scale*phantom_A
 sino_A = mbircone.cone3D.project(phantom_A, angles,
                                  num_det_rows=128, num_det_channels=128,
                                  dist_source_detector=dist_source_detector,
-                                 magnification=1.0,
+                                 magnification=magnification,
                                  delta_det_channel=1.0, delta_det_row=1.0,
                                  delta_pixel_image=1.0)
 
@@ -97,7 +97,7 @@ sino_A_block_average = block_average_sino(sino_A)
 ######################################################################################
 recon_A = mbircone.cone3D.recon(sino_A_block_average, angles,
                                 dist_source_detector=dist_source_detector,
-                                magnification=1.0,
+                                magnification=magnification,
                                 delta_det_channel=2.0, delta_det_row=2.0,
                                 delta_pixel_image=2.0,
                                 max_resolutions=0)
@@ -115,7 +115,7 @@ phantom_B = block_average_3D(phantom_A, 2, 2, 2)
 sino_B = mbircone.cone3D.project(phantom_B, angles,
                                  num_det_rows=64, num_det_channels=64,
                                  dist_source_detector=dist_source_detector,
-                                 magnification=1.0,
+                                 magnification=magnification,
                                  delta_det_channel=2.0, delta_det_row=2.0,
                                  delta_pixel_image=2.0)
 
@@ -124,7 +124,7 @@ sino_B = mbircone.cone3D.project(phantom_B, angles,
 ######################################################################################
 recon_B = mbircone.cone3D.recon(sino_B, angles,
                                 dist_source_detector=dist_source_detector,
-                                magnification=1.0,
+                                magnification=magnification,
                                 delta_det_channel=2.0, delta_det_row=2.0,
                                 delta_pixel_image=2.0,
                                 max_resolutions=0)

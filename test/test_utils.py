@@ -49,11 +49,11 @@ def block_average_3D(image, k, ell, s):
     """
     m, n, p = image.shape
 
-    # zero-padding to be zero modulo k and ell
-    # the array will become size (m+k-1)//k by (n+ell-1)//ell
+    # zero-padding to be zero modulo k, ell, and s
+    # the array will become size (m+k-1)//k by (n+ell-1)//ell by (p+s-1)//s
     image_pad = np.pad(image, ((0, (-m) % k), (0, (-n) % ell), (0, (-p) % s)), 'constant')
 
-    # turn into an array of k by ell blocks
+    # turn into an array of k by ell by s blocks
     image_reshape = image_pad.reshape((m + k - 1) // k, k,
                                       (n + ell - 1) // ell, ell,
                                       (p + s - 1) // s, s).swapaxes(1, 2).swapaxes(2, 4).swapaxes(4, 5)
