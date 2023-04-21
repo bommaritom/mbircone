@@ -425,10 +425,10 @@ def recon_cy(sino, angles, wght, x_init, proxmap_input,
     wght = np.ascontiguousarray(wght, dtype=np.single)
     cdef cnp.ndarray[float, ndim=3, mode="c"] cy_wght = wght
 
-    cdef cnp.ndarray[float, ndim=1, mode="c"] cost = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
-    cdef cnp.ndarray[float, ndim=1, mode="c"] relUpdate = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
-    cdef cnp.ndarray[float, ndim=1, mode="c"] RWFE = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
-    cdef cnp.ndarray[float, ndim=1, mode="c"] RUFE = np.empty(reconparams['MaxIterations'], dtype=ctypes.c_float)
+    cdef cnp.ndarray[float, ndim=1, mode="c"] cost = np.empty(reconparams['MaxIterations']+1, dtype=ctypes.c_float)
+    cdef cnp.ndarray[float, ndim=1, mode="c"] relUpdate = np.empty(reconparams['MaxIterations']+1, dtype=ctypes.c_float)
+    cdef cnp.ndarray[float, ndim=1, mode="c"] RWFE = np.empty(reconparams['MaxIterations']+1, dtype=ctypes.c_float)
+    cdef cnp.ndarray[float, ndim=1, mode="c"] RUFE = np.empty(reconparams['MaxIterations']+1, dtype=ctypes.c_float)
     cdef int finalIteration = 0
 
     cdef IterationStatistics c_iterationstatistics
