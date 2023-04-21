@@ -121,7 +121,8 @@ recon, iteration_statistics = mbircone.laminography.recon_lamino(sino, angles, t
                                            num_image_slices = num_image_slices,
                                            num_image_rows = num_image_rows,
                                            num_image_cols = num_image_cols,
-                                           max_iterations=30,
+                                           max_iterations=1000,
+                                           stop_threshold= 0.02,
                                            sharpness=sharpness, snr_db=snr_db)
 
 print('recon shape = ', np.shape(recon))
@@ -166,29 +167,19 @@ plot_image(recon[:, :, display_y_recon], title=f'qGGMRF recon, sagittal slice {d
                                                        f'Θ='+str(theta_degrees)+' degrees',
            filename=os.path.join(save_path, 'recon_sagittal.png'), vmin=vmin, vmax=vmax)
 
-# num_iterations = iteration_statistics['final_iteration']
+num_iterations = iteration_statistics['final_iteration']
 
-# plt.clf()
-# RWFE = iteration_statistics['RWFE']
-# plt.xlabel('Iteration')
-# plt.ylabel('Log Relative Weighted Forward Error')
-# plt.title('Log RWFE vs Iteration; Final Resolution')
-# plt.plot(np.log10(RWFE[:num_iterations]))
-# plt.savefig(os.path.join(save_path, 'RWFE_iterations.png'))
-#
-# plt.clf()
-# relUpdate = iteration_statistics['relUpdate']
-# plt.xlabel('Iteration')
-# plt.ylabel('Log Relative Update')
-# plt.title('Log Relative Update vs Iteration; Final Resolution')
-# plt.plot(np.log10(relUpdate[:num_iterations]))
-# plt.savefig(os.path.join(save_path, 'relUpdate_iterations.png'))
-#
-# print(f'RWFE after 100 iterations: {RWFE[100]}')
-# print(f'RWFE after {num_iterations} iterations: {RWFE[num_iterations]}')
-#
-# print(f'relUpdate after 100 iterations: {relUpdate[100]}')
-# print(f'relUpdate after {num_iterations} iterations: {relUpdate[num_iterations]}')
+plt.clf()
+relUpdate = iteration_statistics['relUpdate']
+plt.xlabel('Iteration')
+plt.ylabel('Log Relative Update')
+plt.title('Log Relative Update vs Iteration; Final Resolution')
+plt.plot(np.log10(relUpdate[:num_iterations]))
+plt.savefig(os.path.join(save_path, 'relUpdate_iterations.png'))
+
+print(f'RWFE after {num_iterations} iterations: {RWFE[num_iterations]}')
+
+print(f'relUpdate after {num_iterations} iterations: {relUpdate[num_iterations]}')
 
 
 
