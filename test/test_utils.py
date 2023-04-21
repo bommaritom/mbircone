@@ -2,6 +2,8 @@ import numpy as np
 import os
 import mbircone.cone3D as cone3D
 import matplotlib.pyplot as plt
+from scipy import signal as sgn
+from scipy.ndimage import gaussian_filter
 
 __lib_path = os.path.join(os.path.expanduser('~'), '.cache', 'mbircone')
 
@@ -85,6 +87,24 @@ def block_average_sino(sino):
         sino_block_average[view] = block_average(np.copy(sino)[view], 2, 2)
 
     return sino_block_average
+
+
+def apply_gaussian_filter_to_sino(sino, sigma=1):
+    """ Apply a Gaussian filter (scipy.ndimage.gaussian_filter) to each view in sinogram.
+
+    Args:
+        sino (float, ndarray): 3D sinogram data with shape (num_views, num_det_rows, num_det_channels).
+
+    Returns:
+        (float, ndarray) 3D filtered sinogram data with shape (num_views, num_det_rows, num_det_channels).
+    """
+    num_views, num_det_rows, num_det_channels = np.shape(sino)
+
+    sino_filtered = np.zeros((num_views, num_det_rows, num_det_channels))
+    for view in range(num_views):
+        sino_filtered[view] = gaussian_filter(sino[view], sigma=sigma)
+
+    return sino_filtered
 
 
 def plot_image(img, title=None, filename=None, vmin=None, vmax=None):

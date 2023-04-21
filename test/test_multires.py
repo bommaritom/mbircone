@@ -2,23 +2,27 @@ import os
 import numpy as np
 import mbircone
 import matplotlib.pyplot as plt
-from test_utils import block_average_sino, block_average_3D, plot_image
+from test_utils import block_average_sino, block_average_3D, plot_image, apply_gaussian_filter_to_sino
 from scipy import signal as sgn
 
 
 """
-This script is a demonstration of a single multires reconstruction.
-Demo functionality includes:
+The purpose of this script is to perform a qGGMRF reconstruction after
+filtering the sinogram with a Gaussian filter, and downsampling.
+Functionality includes:
  * Generating a 3D Shepp Logan phantom;
  * Forward projecting the Shepp Logan phantom to form a synthetic sinogram;
+ * Filtering the sinogram with a Gaussian filter;
  * Computing a 3D reconstruction from the sinogram at half-resolution;
  * Upsampling the reconstructed image;
  * Displaying the results.
 """
-print('This script is a demonstration of a single multires reconstruction.\
-\nDemo functionality includes:\
+print('The purpose of this script is to perform a qGGMRF reconstruction after\
+\nfiltering the sinogram with a Gaussian filter, and downsampling.\
+\nFunctionality includes:\
 \n\t * Generating a 3D Shepp Logan phantom; \
 \n\t * Forward projecting the Shepp Logan phantom to form a synthetic sinogram;\
+\n\t * Filtering the sinogram with a Gaussian filter;\
 \n\t * Computing a 3D reconstruction from the sinogram at half-resolution;\
 \n\t * Upsampling the reconstructed image;\
 \n\t * Displaying the results.\n')
@@ -68,17 +72,17 @@ save_path = f'output/test_multires/'
 os.makedirs(save_path, exist_ok=True)
 
 ######################################################################################
-# Generate phantom_A
+# Generate phantom
 ######################################################################################
-phantom_A = mbircone.phantom.gen_shepp_logan_3d(num_phantom_rows, num_phantom_cols,
+phantom = mbircone.phantom.gen_shepp_logan_3d(num_phantom_rows, num_phantom_cols,
                                                 num_phantom_slices, scale=scale)
-phantom_A = SL_phantom_density_scale*phantom_A
+phantom = SL_phantom_density_scale*phantom
 
 
 ######################################################################################
-# Generate sino_A
+# Generate sino
 ######################################################################################
-sino_A = mbircone.cone3D.project(phantom_A, angles,
+sino = mbircone.cone3D.project(phantom, angles,
                                  num_det_rows=128, num_det_channels=128,
                                  dist_source_detector=dist_source_detector,
                                  magnification=magnification,
@@ -87,120 +91,49 @@ sino_A = mbircone.cone3D.project(phantom_A, angles,
 
 
 ######################################################################################
-# Generate sino_A_block_average by taking the view-wise block average of sino_A
+# Generate sino_block_average by taking the view-wise block average of sino
 ######################################################################################
-sino_A_block_average = block_average_sino(sino_A)
+sino_block_average = block_average_sino(sino)
+sino_block_average_filtered = apply_gaussian_filter_to_sino(sino_block_average, sigma=1)
 
-
 ######################################################################################
-# Generate recon_A by performing qGGMRF reconstruction on sino_A_block_average
+# Generate recon by performing qGGMRF reconstruction on sino_block_average
 ######################################################################################
-recon_A = mbircone.cone3D.recon(sino_A_block_average, angles,
+recon, _ = mbircone.cone3D.recon(sino_block_average_filtered, angles,
                                 dist_source_detector=dist_source_detector,
                                 magnification=magnification,
                                 delta_det_channel=2.0, delta_det_row=2.0,
                                 delta_pixel_image=2.0,
                                 max_resolutions=0)
-
-
-######################################################################################
-# Generate phantom_B by performing 3D block-averaging on phantom_A
-######################################################################################
-phantom_B = block_average_3D(phantom_A, 2, 2, 2)
-
-
-######################################################################################
-# Generate sino_B
-######################################################################################
-sino_B = mbircone.cone3D.project(phantom_B, angles,
-                                 num_det_rows=64, num_det_channels=64,
-                                 dist_source_detector=dist_source_detector,
-                                 magnification=magnification,
-                                 delta_det_channel=2.0, delta_det_row=2.0,
-                                 delta_pixel_image=2.0)
-
-######################################################################################
-# Generate recon_B by performing qGGMRF reconstruction on sino_B
-######################################################################################
-recon_B = mbircone.cone3D.recon(sino_B, angles,
-                                dist_source_detector=dist_source_detector,
-                                magnification=magnification,
-                                delta_det_channel=2.0, delta_det_row=2.0,
-                                delta_pixel_image=2.0,
-                                max_resolutions=0)
-
-
-######################################################################################
-# Sinogram error image
-######################################################################################
-sino_diff = np.abs(sino_A_block_average - sino_B)
-
+print(f'Recon shape: {np.shape(recon)}')
 
 ######################################################################################
 # Display results
 ######################################################################################
 
-# Suppress max figure warning
-plt.rcParams.update({'figure.max_open_warning': 0})
+# phantom
+plot_image(phantom[64], title=f'phantom, axial slice {64}',
+           filename=os.path.join(save_path, 'phantom_axial.png'), vmin=vmin, vmax=vmax)
+plot_image(phantom[:,64,:], title=f'phantom, coronal slice {64}',
+           filename=os.path.join(save_path, 'phantom_coronal.png'), vmin=vmin, vmax=vmax)
+plot_image(phantom[:,:,64], title=f'phantom, sagittal slice {64}',
+           filename=os.path.join(save_path, 'phantom_sagittal.png'), vmin=vmin, vmax=vmax)
 
-# phantom_A
-plot_image(phantom_A[64], title=f'phantom_A, axial slice {64}',
-           filename=os.path.join(save_path, 'phantom_A_axial.png'), vmin=vmin, vmax=vmax)
-plot_image(phantom_A[:,64,:], title=f'phantom_A, coronal slice {64}',
-           filename=os.path.join(save_path, 'phantom_A_coronal.png'), vmin=vmin, vmax=vmax)
-plot_image(phantom_A[:,:,64], title=f'phantom_A, sagittal slice {64}',
-           filename=os.path.join(save_path, 'phantom_A_sagittal.png'), vmin=vmin, vmax=vmax)
-
-# sino_A
+# sino
 for view_idx in [0, num_views//4, num_views//2]:
     view_angle = int(angles[view_idx]*180/np.pi)
-    plot_image(sino_A[view_idx, :, :], title=f'sino_A view angle {view_angle} ',
-               filename=os.path.join(save_path, f'sino-A-shepp-logan-3D-view_angle{view_angle}.png'))
+    plot_image(sino[view_idx, :, :], title=f'sino view angle {view_angle} ',
+               filename=os.path.join(save_path, f'sino-shepp-logan-3D-view_angle{view_angle}.png'))
 
-# sino_A_block_average
-for view_idx in [0, num_views//4, num_views//2]:
-    view_angle = int(angles[view_idx]*180/np.pi)
-    plot_image(sino_A_block_average[view_idx, :, :], title=f'sino_A_block_average view angle {view_angle} ',
-               filename=os.path.join(save_path, f'sino-A-block-average-shepp-logan-3D-view_angle{view_angle}.png'))
+# recon
+plot_image(recon[32], title=f'recon, axial slice {32}',
+           filename=os.path.join(save_path, 'recon_axial.png'), vmin=vmin, vmax=vmax)
+plot_image(recon[:,32,:], title=f'recon, coronal slice {32}',
+           filename=os.path.join(save_path, 'recon_coronal.png'), vmin=vmin, vmax=vmax)
+plot_image(recon[:,:,32], title=f'recon, sagittal slice {32}',
+           filename=os.path.join(save_path, 'recon_sagittal.png'), vmin=vmin, vmax=vmax)
 
-# recon_A
-plot_image(recon_A[32], title=f'recon_A, axial slice {32}',
-           filename=os.path.join(save_path, 'recon_A_axial.png'), vmin=vmin, vmax=vmax)
-plot_image(recon_A[:,32,:], title=f'recon_A, coronal slice {32}',
-           filename=os.path.join(save_path, 'recon_A_coronal.png'), vmin=vmin, vmax=vmax)
-plot_image(recon_A[:,:,32], title=f'recon_A, sagittal slice {32}',
-           filename=os.path.join(save_path, 'recon_A_sagittal.png'), vmin=vmin, vmax=vmax)
 
-print(f"Images saved to {save_path}.")
-input("Press Enter")
-
-# phantom_B
-plot_image(phantom_B[32], title=f'phantom_B, axial slice {32}',
-           filename=os.path.join(save_path, 'phantom_B_axial.png'), vmin=vmin, vmax=vmax)
-plot_image(phantom_B[:,32,:], title=f'phantom_B, coronal slice {32}',
-           filename=os.path.join(save_path, 'phantom_B_coronal.png'), vmin=vmin, vmax=vmax)
-plot_image(phantom_B[:,:,32], title=f'phantom_B, sagittal slice {32}',
-           filename=os.path.join(save_path, 'phantom_B_sagittal.png'), vmin=vmin, vmax=vmax)
-
-# sino_B
-for view_idx in [0, num_views//4, num_views//2]:
-    view_angle = int(angles[view_idx]*180/np.pi)
-    plot_image(sino_B[view_idx, :, :], title=f'sino_B view angle {view_angle} ',
-               filename=os.path.join(save_path, f'sino-B-shepp-logan-3D-view_angle{view_angle}.png'))
-
-# recon_B
-plot_image(recon_B[32], title=f'recon_B, axial slice {32}',
-           filename=os.path.join(save_path, 'recon_B_axial.png'), vmin=vmin, vmax=vmax)
-plot_image(recon_B[:,32,:], title=f'recon_B, coronal slice {32}',
-           filename=os.path.join(save_path, 'recon_B_coronal.png'), vmin=vmin, vmax=vmax)
-plot_image(recon_B[:,:,32], title=f'recon_B, sagittal slice {32}',
-           filename=os.path.join(save_path, 'recon_B_sagittal.png'), vmin=vmin, vmax=vmax)
-
-# sino_diff
-for view_idx in [0, num_views//4, num_views//2]:
-    view_angle = int(angles[view_idx]*180/np.pi)
-    plot_image(sino_diff[view_idx, :, :], title=f'sino_diff view angle {view_angle} ',
-               filename=os.path.join(save_path, f'sino-diff-shepp-logan-3D-view_angle{view_angle}.png'))
 
 
 print(f"Images saved to {save_path}.") 
