@@ -90,62 +90,26 @@ sino = mbircone.cone3D.project(phantom, angles,
                                  delta_det_channel=1.0, delta_det_row=1.0,
                                  delta_pixel_image=1.0)
 
-######################################################################################
-# Generate init_image_A by performing qGGMRF with sino
-######################################################################################
-init_image_A = mbircone.cone3D.recon(sino, angles,
-                                     dist_source_detector=dist_source_detector,
-                                     magnification=magnification,
-                                     delta_det_channel=1.0, delta_det_row=1.0,
-                                     delta_pixel_image=2.0,
-                                     max_resolutions=0)
-init_image_A = np.repeat(init_image_A, 2, axis=0)
-init_image_A = np.repeat(init_image_A, 2, axis=1)
-init_image_A = np.repeat(init_image_A, 2, axis=2)
-
-
 ####################################################c##################################
-# Generate low_res_sino_B by performing block-averaging and Gaussian filtering
+# Generate low_res_sino by performing block-averaging and Gaussian filtering
 ######################################################################################
 sino_gaussian_filter = apply_gaussian_filter_to_sino(sino, sigma=1)
-low_res_sino_B = block_average_sino(sino_gaussian_filter)
-# low_res_sino_B = resize(sino, (num_views, num_det_rows // 2, num_det_channels // 2), anti_aliasing=True)
-# low_res_sino_B = zoom_sino(sino)
+low_res_sino = block_average_sino(sino_gaussian_filter)
+# low_res_sino = resize(sino, (num_views, num_det_rows // 2, num_det_channels // 2), anti_aliasing=True)
+# low_res_sino = zoom_sino(sino)
 
 ######################################################################################
-# Generate init_image_B by performing qGGMRF with low_res_sino_B
+# Generate init_image by performing qGGMRF with low_res_sino
 ######################################################################################
-init_image_B = mbircone.cone3D.recon(low_res_sino_B, angles,
+init_image = mbircone.cone3D.recon(low_res_sino, angles,
                                      dist_source_detector=dist_source_detector,
                                      magnification=magnification,
                                      delta_det_channel=2.0, delta_det_row=2.0,
                                      delta_pixel_image=2.0,
                                      max_resolutions=0)
-init_image_B = np.repeat(init_image_B, 2, axis=0)
-init_image_B = np.repeat(init_image_B, 2, axis=1)
-init_image_B = np.repeat(init_image_B, 2, axis=2)
-
-######################################################################################
-# Generate recon_A and recon_B by performing qGGMRF reconstruction with init_image_A
-# and init_image_B
-######################################################################################
-print("Generating recon A.")
-recon_A = mbircone.cone3D.recon(sino, angles,
-                                init_image=init_image_A,
-                                dist_source_detector=dist_source_detector,
-                                magnification=magnification,
-                                delta_det_channel=1.0, delta_det_row=1.0,
-                                delta_pixel_image=1.0,
-                                max_resolutions=0)
-
-print("Generating recon B.")
-recon_B = mbircone.cone3D.recon(sino, angles,
-                                init_image=init_image_B,
-                                dist_source_detector=dist_source_detector,
-                                magnification=magnification,
-                                delta_det_channel=1.0, delta_det_row=1.0,
-                                delta_pixel_image=1.0,
-                                max_resolutions=0)
+init_image = np.repeat(init_image, 2, axis=0)
+init_image = np.repeat(init_image, 2, axis=1)
+init_image = np.repeat(init_image, 2, axis=2)
 
 ######################################################################################
 # Display results
@@ -172,41 +136,16 @@ for view_idx in [0, num_views//4, num_views//2]:
 # low res sino
 for view_idx in [0, num_views//4, num_views//2]:
     view_angle = int(angles[view_idx]*180/np.pi)
-    plot_image(low_res_sino_B[view_idx, :, :], title=f'low res sino B filtered view angle {view_angle} ',
-               filename=os.path.join(save_path, f'low-res-sino-B-shepp-logan-3D-view_angle{view_angle}.png'))
+    plot_image(low_res_sino_B[view_idx, :, :], title=f'low res sino filtered view angle {view_angle} ',
+               filename=os.path.join(save_path, f'low-res-sino-shepp-logan-3D-view_angle{view_angle}.png'))
 
-# init_image_A
-plot_image(init_image_A[view_slice], title=f'init image A, axial slice {view_slice}',
-           filename=os.path.join(save_path, 'init_image_A_axial.png'), vmin=vmin, vmax=vmax)
-plot_image(init_image_A[:,view_row,:], title=f'init image A, coronal slice {view_row}',
-           filename=os.path.join(save_path, 'init_image_A_coronal.png'), vmin=vmin, vmax=vmax)
-plot_image(init_image_A[:,:,view_col], title=f'init image A, sagittal slice {view_col}',
-           filename=os.path.join(save_path, 'init_image_A_sagittal.png'), vmin=vmin, vmax=vmax)
-
-# init_image_B
-plot_image(init_image_B[view_slice], title=f'init image B, axial slice {view_slice}',
-           filename=os.path.join(save_path, 'init_image_B_axial.png'), vmin=vmin, vmax=vmax)
-plot_image(init_image_B[:,view_row,:], title=f'init image B, coronal slice {view_row}',
-           filename=os.path.join(save_path, 'init_image_B_coronal.png'), vmin=vmin, vmax=vmax)
-plot_image(init_image_B[:,:,view_col], title=f'init image B, sagittal slice {view_col}',
-           filename=os.path.join(save_path, 'init_image_B_sagittal.png'), vmin=vmin, vmax=vmax)
-
-# recon_A
-plot_image(recon_A[view_slice], title=f'recon A, axial slice {view_slice}',
-           filename=os.path.join(save_path, 'recon_A_axial.png'), vmin=vmin, vmax=vmax)
-plot_image(recon_A[:,view_row,:], title=f'recon A, coronal slice {view_row}',
-           filename=os.path.join(save_path, 'recon_A_coronal.png'), vmin=vmin, vmax=vmax)
-plot_image(recon_A[:,:,view_col], title=f'recon A, sagittal slice {view_col}',
-           filename=os.path.join(save_path, 'recon_A_sagittal.png'), vmin=vmin, vmax=vmax)
-
-# recon_B
-plot_image(recon_B[view_slice], title=f'recon B, axial slice {view_slice}',
-           filename=os.path.join(save_path, 'recon_B_axial.png'), vmin=vmin, vmax=vmax)
-plot_image(recon_B[:,view_row,:], title=f'recon B, coronal slice {view_row}',
-           filename=os.path.join(save_path, 'recon_B_coronal.png'), vmin=vmin, vmax=vmax)
-plot_image(recon_B[:,:,view_col], title=f'recon B, sagittal slice {view_col}',
-           filename=os.path.join(save_path, 'recon_B_sagittal.png'), vmin=vmin, vmax=vmax)
-
+# init_image
+plot_image(init_image[view_slice], title=f'init image, axial slice {view_slice}',
+           filename=os.path.join(save_path, 'init_image_axial.png'), vmin=vmin, vmax=vmax)
+plot_image(init_image[:,view_row,:], title=f'init image, coronal slice {view_row}',
+           filename=os.path.join(save_path, 'init_image_coronal.png'), vmin=vmin, vmax=vmax)
+plot_image(init_image[:,:,view_col], title=f'init image, sagittal slice {view_col}',
+           filename=os.path.join(save_path, 'init_image_sagittal.png'), vmin=vmin, vmax=vmax)
 
 
 print(f"Images saved to {save_path}.") 
