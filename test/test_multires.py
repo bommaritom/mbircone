@@ -136,7 +136,7 @@ for view_idx in [0, num_views//4, num_views//2]:
 # low res sino
 for view_idx in [0, num_views//4, num_views//2]:
     view_angle = int(angles[view_idx]*180/np.pi)
-    plot_image(low_res_sino_B[view_idx, :, :], title=f'low res sino filtered view angle {view_angle} ',
+    plot_image(low_res_sino[view_idx, :, :], title=f'low res sino filtered view angle {view_angle} ',
                filename=os.path.join(save_path, f'low-res-sino-shepp-logan-3D-view_angle{view_angle}.png'))
 
 # init_image
