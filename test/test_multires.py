@@ -90,17 +90,12 @@ sino = mbircone.cone3D.project(phantom, angles,
                                  delta_pixel_image=1.0)
 
 ######################################################################################
-# Generate low_res_sino_A by taking the view-wise block average of sino
+# Generate init_image_A by performing qGGMRF with sino
 ######################################################################################
-low_res_sino_A = block_average_sino(sino)
-
-######################################################################################
-# Generate init_image_A by performing qGGMRF with low_res_sino_A
-######################################################################################
-init_image_A = mbircone.cone3D.recon(low_res_sino_A, angles,
+init_image_A = mbircone.cone3D.recon(sino, angles,
                                      dist_source_detector=dist_source_detector,
                                      magnification=magnification,
-                                     delta_det_channel=2.0, delta_det_row=2.0,
+                                     delta_det_channel=1.0, delta_det_row=1.0,
                                      delta_pixel_image=2.0,
                                      max_resolutions=0)
 init_image_A = np.repeat(init_image_A, 2, axis=0)
@@ -108,7 +103,7 @@ init_image_A = np.repeat(init_image_A, 2, axis=1)
 init_image_A = np.repeat(init_image_A, 2, axis=2)
 
 
-######################################################################################
+####################################################c##################################
 # Generate low_res_sino_B by performing block-averaging and Gaussian filtering
 ######################################################################################
 # sino_block_average = block_average_sino(sino)
@@ -174,13 +169,7 @@ for view_idx in [0, num_views//4, num_views//2]:
     plot_image(sino[view_idx, :, :], title=f'sino view angle {view_angle} ',
                filename=os.path.join(save_path, f'sino-shepp-logan-3D-view_angle{view_angle}.png'))
 
-# low res sino A
-for view_idx in [0, num_views//4, num_views//2]:
-    view_angle = int(angles[view_idx]*180/np.pi)
-    plot_image(low_res_sino_A[view_idx, :, :], title=f'low res sino A view angle {view_angle} ',
-               filename=os.path.join(save_path, f'low-res-sino-A-shepp-logan-3D-view_angle{view_angle}.png'))
-
-# low res sino B
+# low res sino
 for view_idx in [0, num_views//4, num_views//2]:
     view_angle = int(angles[view_idx]*180/np.pi)
     plot_image(low_res_sino_B[view_idx, :, :], title=f'low res sino B filtered view angle {view_angle} ',

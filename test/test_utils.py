@@ -3,7 +3,7 @@ import os
 import mbircone.cone3D as cone3D
 import matplotlib.pyplot as plt
 from scipy import signal as sgn
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter, zoom
 
 __lib_path = os.path.join(os.path.expanduser('~'), '.cache', 'mbircone')
 
@@ -87,6 +87,28 @@ def block_average_sino(sino):
         sino_block_average[view] = block_average(np.copy(sino)[view], 2, 2)
 
     return sino_block_average
+
+
+def zoom_sino(sino):
+    """ Apply the scipy zoom method to each view in the sinogram.
+
+    Args:
+        sino (float, ndarray): 3D sinogram data with shape (num_views, num_det_rows, num_det_channels).
+
+    Returns:
+        (float, ndarray) Low-resolution sinogram attained using scipy.ndimage.zoom method,
+        of shape (num_views // 2, num_det_rows // 2, num_det_channels // 2).
+
+
+    """
+    num_views, num_det_rows, num_det_channels = np.shape(sino)
+
+    # perform block-averaging
+    sino_zoom = np.zeros((num_views, (num_det_rows + 1) // 2, (num_det_channels + 1) // 2))
+    for view in range(num_views):
+        sino_zoom[view] = zoom(np.copy(sino)[view], 2, 2)
+
+    return sino_zoom
 
 
 def apply_gaussian_filter_to_sino(sino, sigma=1):
