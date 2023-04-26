@@ -109,6 +109,7 @@ init_image_A = np.repeat(init_image_A, 2, axis=2)
 ######################################################################################
 sino_gaussian_filter = apply_gaussian_filter_to_sino(sino, sigma=1)
 low_res_sino_B = block_average_sino(sino_gaussian_filter)
+# low_res_sino_B = sino_gaussian_filter[:,::2,::2]
 # low_res_sino_B = resize(sino, (num_views, num_det_rows // 2, num_det_channels // 2), anti_aliasing=True)
 # low_res_sino_B = zoom_sino(sino)
 
