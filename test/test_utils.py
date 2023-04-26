@@ -90,7 +90,7 @@ def block_average_sino(sino):
 
 
 def zoom_sino(sino):
-    """ Apply the scipy zoom method to each view in the sinogram.
+    """ Apply the scipy zoom method to each view in the sinogram to rescale by factor of 2.
 
     Args:
         sino (float, ndarray): 3D sinogram data with shape (num_views, num_det_rows, num_det_channels).
@@ -106,7 +106,7 @@ def zoom_sino(sino):
     # perform block-averaging
     sino_zoom = np.zeros((num_views, (num_det_rows + 1) // 2, (num_det_channels + 1) // 2))
     for view in range(num_views):
-        sino_zoom[view] = zoom(np.copy(sino)[view], 2, 2)
+        sino_zoom[view] = zoom(np.copy(sino)[view], 0.5)
 
     return sino_zoom
 

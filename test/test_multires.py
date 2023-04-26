@@ -2,7 +2,8 @@ import os
 import numpy as np
 import mbircone
 import matplotlib.pyplot as plt
-from test_utils import block_average_sino, block_average_3D, plot_image, apply_gaussian_filter_to_sino
+from test_utils import block_average_sino, block_average_3D, plot_image, apply_gaussian_filter_to_sino, zoom_sino
+from skimage.transform import resize
 from scipy import signal as sgn
 
 
@@ -106,11 +107,10 @@ init_image_A = np.repeat(init_image_A, 2, axis=2)
 ####################################################c##################################
 # Generate low_res_sino_B by performing block-averaging and Gaussian filtering
 ######################################################################################
-# sino_block_average = block_average_sino(sino)
-# low_res_sino_B = apply_gaussian_filter_to_sino(sino_block_average, sigma=1)
-sino_gaussian_filter = apply_gaussian_filter_to_sino(sino, sigma=0.75)
+sino_gaussian_filter = apply_gaussian_filter_to_sino(sino, sigma=1)
 low_res_sino_B = block_average_sino(sino_gaussian_filter)
-
+# low_res_sino_B = resize(sino, (num_views, num_det_rows // 2, num_det_channels // 2), anti_aliasing=True)
+# low_res_sino_B = zoom_sino(sino)
 
 ######################################################################################
 # Generate init_image_B by performing qGGMRF with low_res_sino_B
