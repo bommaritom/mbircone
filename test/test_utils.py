@@ -116,6 +116,7 @@ def apply_gaussian_filter_to_sino(sino, sigma=1):
 
     Args:
         sino (float, ndarray): 3D sinogram data with shape (num_views, num_det_rows, num_det_channels).
+        sigma (float): Value of parameter sigma in Gaussian filter.
 
     Returns:
         (float, ndarray) 3D filtered sinogram data with shape (num_views, num_det_rows, num_det_channels).
