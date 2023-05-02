@@ -68,6 +68,66 @@ def block_average_3D(image, k, ell, s):
     return image_block_avg
 
 
+def get_sinc(sampling_rate, order):
+    """
+    Return a sampled 2D sinc filter of size 2*order+1, corresponding to the
+    given sampling rate sampling_rate, normalized to have DC shift 1
+
+    Args:
+        sampling_rate (int): Discrete sampling rate of sinc function. If 1, then
+            this becomes the impulse response function.
+        order (int): Parametrizes the size of filter.
+
+    Returns:
+        (float, ndarray) 2D convolutional filter corresponding to a sinc
+            sampled at rate sampling_rate, of size (2*order + 1) x (2*order + 1).
+    """
+    output = [np.sinc(x / sampling_rate)/sampling_rate for x in range(-order, order+1)]
+    output *= np.hamming(2*order + 1)
+    return np.outer(output, output)
+
+
+def apply_filter_to_sino(sino, kernel):
+    """ Apply filter to sino.
+
+    Args:
+        sino (float, ndarray): 3D sinogram data with shape (num_views, num_det_rows, num_det_channels).
+        kernel (float, ndarray): 2D convolutional filter
+
+    Returns:
+        (float, ndarray) 3D sinogram data with each view angle filtered
+
+    """
+    num_views, num_det_rows, num_det_channels = np.shape(sino)
+
+    filtered_sino = np.copy(sino)
+    for view in range(num_views):
+        filtered_sino[view] = sgn.convolve(filtered_sino[view], kernel, mode='same')
+
+    return filtered_sino
+
+
+def apply_sinc_to_sino(sino, sampling_rate, order = None):
+    """ Apply a sinc filter (scipy.ndimage.gaussian_filter) to each view in sinogram.
+
+    Args:
+        sino (float, ndarray): 3D sinogram data with shape (num_views, num_det_rows, num_det_channels).
+        sampling_rate (int): Discrete sampling rate of sinc function. If 1, then
+            this becomes the impulse response function.
+        order (int): [Default = None] Parametrizes the size of filter. If None, automatically set to
+            2*sampling_rate
+
+    Returns:
+        (float, ndarray) 3D filtered sinogram data with shape (num_views, num_det_rows, num_det_channels).
+    """
+
+    if order is None:
+        order = 2*sampling_rate
+
+    kernel = get_sinc(sampling_rate, order)
+    return apply_filter_to_sino(sino, kernel)
+
+
 def block_average_sino(sino):
     """ Perform view-wise block-averaging of the inputted sinogram.
 
